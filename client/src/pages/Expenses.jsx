@@ -4,8 +4,7 @@ import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon, FilterList as F
 import axios from 'axios';
 import ExpenseForm from '../components/ExpenseForm';
 import { format } from 'date-fns';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { format } from 'date-fns';
 import { formatDateForDisplay } from '../utils/dateHelpers';
 
 import { useAuth } from '../context/AuthContext';
