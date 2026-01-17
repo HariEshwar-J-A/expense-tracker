@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Typography, Paper, Grid, useTheme } from '@mui/material';
+import { Box, Typography, Paper, Grid, useTheme, Card, CardContent } from '@mui/material';
+import { useThemeContext } from '../context/ThemeContext';
 import axios from 'axios';
 import * as d3 from 'd3';
+import { AttachMoney, ShowChart, Category, Store } from '@mui/icons-material';
 
 const Dashboard = () => {
     const theme = useTheme();
+    const { primaryColor } = useThemeContext();
     const [stats, setStats] = useState(null);
     const pieRef = useRef();
     const barRef = useRef();
@@ -24,13 +27,10 @@ const Dashboard = () => {
     useEffect(() => {
         if (!stats) return;
 
-        // Draw Pie Chart
         drawPieChart(stats.categoryStats);
-
-        // Draw Bar Chart
         drawBarChart(stats.dailyStats);
-
-    }, [stats, theme.palette.mode]);
+        // Additional charts can be added here
+    }, [stats, theme.palette.mode, primaryColor]);
 
     const drawPieChart = (data) => {
         const svg = d3.select(pieRef.current);
@@ -49,14 +49,10 @@ const Dashboard = () => {
             .domain(Object.keys(data))
             .range(d3.schemeSet2);
 
-        const pie = d3.pie()
-            .value(d => d[1]);
-
+        const pie = d3.pie().value(d => d[1]);
         const data_ready = pie(Object.entries(data));
 
-        const arc = d3.arc()
-            .innerRadius(radius * 0.5) // Donut chart
-            .outerRadius(radius * 0.8);
+        const arc = d3.arc().innerRadius(radius * 0.5).outerRadius(radius * 0.8);
 
         g.selectAll('path')
             .data(data_ready)
@@ -67,23 +63,16 @@ const Dashboard = () => {
             .attr('stroke', theme.palette.background.paper)
             .style('stroke-width', '2px')
             .style('opacity', 0.8)
-            .on('mouseover', function (d) {
-                d3.select(this).style('opacity', 1);
-            })
-            .on('mouseout', function (d) {
-                d3.select(this).style('opacity', 0.8);
-            });
+            .on('mouseover', function (d) { d3.select(this).style('opacity', 1); })
+            .on('mouseout', function (d) { d3.select(this).style('opacity', 0.8); });
 
-        // Add labels
-        const outerArc = d3.arc()
-            .innerRadius(radius * 0.9)
-            .outerRadius(radius * 0.9);
-
+        // Labels
+        const outerArc = d3.arc().innerRadius(radius * 0.9).outerRadius(radius * 0.9);
         g.selectAll('text')
             .data(data_ready)
             .enter()
             .append('text')
-            .text(d => `${d.data[0]}`)
+            .text(d => d.data[0])
             .attr('transform', d => `translate(${outerArc.centroid(d)})`)
             .style('text-anchor', 'middle')
             .style('font-size', 12)
@@ -94,11 +83,10 @@ const Dashboard = () => {
         const svg = d3.select(barRef.current);
         svg.selectAll('*').remove();
 
-        // Convert to array and sort by date
         const dataArray = Object.entries(data)
             .map(([date, amount]) => ({ date: new Date(date), amount }))
             .sort((a, b) => a.date - b.date)
-            .slice(-7); // Last 7 active days
+            .slice(-7);
 
         const margin = { top: 20, right: 30, bottom: 40, left: 40 };
         const width = 500 - margin.left - margin.right;
@@ -109,7 +97,6 @@ const Dashboard = () => {
             .append('g')
             .attr('transform', `translate(${margin.left},${margin.top})`);
 
-        // X Axis
         const x = d3.scaleBand()
             .range([0, width])
             .domain(dataArray.map(d => d.date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })))
@@ -121,7 +108,6 @@ const Dashboard = () => {
             .selectAll('text')
             .style('fill', theme.palette.text.secondary);
 
-        // Y Axis
         const y = d3.scaleLinear()
             .domain([0, d3.max(dataArray, d => d.amount) || 100])
             .range([height, 0]);
@@ -131,7 +117,6 @@ const Dashboard = () => {
             .selectAll('text')
             .style('fill', theme.palette.text.secondary);
 
-        // Bars
         g.selectAll('rect')
             .data(dataArray)
             .enter()
@@ -141,12 +126,63 @@ const Dashboard = () => {
             .attr('width', x.bandwidth())
             .attr('height', d => height - y(d.amount))
             .attr('fill', theme.palette.primary.main)
-            .attr('rx', 4); // Rounded bars
+            .attr('rx', 4);
     };
+
+    const KPICard = ({ title, value, icon, subtext }) => (
+        <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{ p: 1.5, borderRadius: 3, bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', color: theme.palette.primary.main }}>
+                    {icon}
+                </Box>
+                <Box>
+                    <Typography variant="body2" color="text.secondary" fontWeight={500}>{title}</Typography>
+                    <Typography variant="h5" fontWeight={700}>{value}</Typography>
+                    {subtext && <Typography variant="caption" color="text.secondary">{subtext}</Typography>}
+                </Box>
+            </CardContent>
+        </Card>
+    );
 
     return (
         <Box>
             <Typography variant="h4" fontWeight="bold" gutterBottom>Dashboard</Typography>
+
+            {/* KPI Cards */}
+            <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid item xs={12} sm={6} md={3}>
+                    <KPICard
+                        title="Total Spending"
+                        value={`$${stats?.kpis?.totalSpend?.toFixed(2) || '0.00'}`}
+                        icon={<AttachMoney />}
+                    />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                    <KPICard
+                        title="Avg Transaction"
+                        value={`$${stats?.kpis?.avgTransaction?.toFixed(2) || '0.00'}`}
+                        icon={<ShowChart />}
+                    />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                    <KPICard
+                        title="Top Category"
+                        value={stats?.kpis?.topCategory?.name || 'N/A'}
+                        subtext={`$${stats?.kpis?.topCategory?.amount?.toFixed(2) || '0.00'}`}
+                        icon={<Category />}
+                    />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                    <KPICard
+                        title="Top Vendor"
+                        value={stats?.kpis?.topVendor?.name || 'N/A'}
+                        subtext={`$${stats?.kpis?.topVendor?.amount?.toFixed(2) || '0.00'}`}
+                        icon={<Store />}
+                    />
+                </Grid>
+            </Grid>
+
+            {/* Charts */}
             <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
                     <Paper sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: 400 }}>
