@@ -93,25 +93,25 @@ const Expenses = () => {
                 responseType: 'blob',
             });
 
-            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
 
-            const contentDisposition = response.headers['content-disposition'];
-            let filename = `Expenses_${formatDateForDisplay(new Date().toISOString())}.pdf`;
-            if (contentDisposition) {
-                // Match content inside quotes: filename="example.pdf"
-                const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
-                if (filenameMatch && filenameMatch.length === 2) {
-                    filename = filenameMatch[1];
-                }
-            }
+            // Generate filename locally to ensure device's local time is used
+            const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm-ss');
+            const username = user?.username || 'User';
+            let filename = `${username}_Expenses_${timestamp}`;
+            if (filters.category) filename += `_${filters.category}`;
+            filename += '.pdf';
 
             link.setAttribute('download', filename);
             document.body.appendChild(link);
             link.click();
             link.parentNode.removeChild(link);
-            window.URL.revokeObjectURL(url);
+
+            // Delay revocation to ensure download starts
+            setTimeout(() => window.URL.revokeObjectURL(url), 100);
         } catch (error) {
             console.error('Export failed', error);
             alert('Failed to export PDF');

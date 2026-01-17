@@ -2,6 +2,47 @@ const express = require('express');
 const router = express.Router();
 const { expenses } = require('../data');
 const auth = require('../middleware/auth');
+const { generateExpenseReport } = require('../utils/pdfGenerator');
+
+// GET /api/expenses/export
+router.get('/export', auth, (req, res) => {
+    try {
+        const { category, startDate, endDate, minAmount, maxAmount, sortBy = 'date', order = 'desc' } = req.query;
+        let userId = req.user.id;
+
+        let filtered = expenses.filter(expense => expense.userId === userId);
+
+        if (category) filtered = filtered.filter(e => e.category === category);
+        if (startDate) filtered = filtered.filter(e => e.date >= startDate);
+        if (endDate) filtered = filtered.filter(e => e.date <= endDate);
+        if (minAmount) filtered = filtered.filter(e => Number(e.amount) >= Number(minAmount));
+        if (maxAmount) filtered = filtered.filter(e => Number(e.amount) <= Number(maxAmount));
+
+        // Sort
+        filtered.sort((a, b) => {
+            let valA = a[sortBy];
+            let valB = b[sortBy];
+            if (sortBy === 'amount') {
+                valA = Number(valA);
+                valB = Number(valB);
+            } else if (sortBy === 'date') {
+                valA = new Date(valA);
+                valB = new Date(valB);
+            } else {
+                valA = valA.toString().toLowerCase();
+                valB = valB.toString().toLowerCase();
+            }
+            if (valA < valB) return order === 'asc' ? -1 : 1;
+            if (valA > valB) return order === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        generateExpenseReport(filtered, { category, startDate, endDate }, req.user, res);
+    } catch (error) {
+        console.error('PDF Export Error:', error);
+        res.status(500).json({ message: 'Error generating report' });
+    }
+});
 
 // GET /api/expenses/stats (Must be before /:id)
 router.get('/stats', auth, (req, res) => {
