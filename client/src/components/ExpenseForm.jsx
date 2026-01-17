@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, MenuItem } from '@mui/material';
+import { useState, useEffect } from 'react';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, MenuItem, InputAdornment } from '@mui/material';
+import { getTodayDateString } from '../utils/dateHelpers';
 
 const CATEGORIES = ['Food', 'Transport', 'Utilities', 'Entertainment', 'Health', 'Other'];
 
 const ExpenseForm = ({ open, handleClose, handleSubmit, initialData }) => {
     const [formData, setFormData] = useState({
         amount: '',
-        date: new Date().toISOString().split('T')[0],
+        date: getTodayDateString(),
         vendor: '',
         category: 'Other'
     });
@@ -20,7 +21,7 @@ const ExpenseForm = ({ open, handleClose, handleSubmit, initialData }) => {
         } else {
             setFormData({
                 amount: '',
-                date: new Date().toISOString().split('T')[0],
+                date: getTodayDateString(),
                 vendor: '',
                 category: 'Other'
             });
@@ -43,6 +44,10 @@ const ExpenseForm = ({ open, handleClose, handleSubmit, initialData }) => {
                         type="number"
                         fullWidth
                         required
+                        placeholder="0.00"
+                        InputProps={{
+                            startAdornment: <InputAdornment position="start">CAD $</InputAdornment>,
+                        }}
                         value={formData.amount}
                         onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                     />
@@ -52,6 +57,7 @@ const ExpenseForm = ({ open, handleClose, handleSubmit, initialData }) => {
                         type="text"
                         fullWidth
                         required
+                        placeholder="e.g. Walmart, Uber"
                         value={formData.vendor}
                         onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
                     />
