@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
-import getTheme from './theme';
+import { ThemeContextProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
 import Expenses from './pages/Expenses';
+import Settings from './pages/Settings';
 import Layout from './components/Layout';
 
 const ProtectedRoute = ({ children }) => {
@@ -15,38 +16,37 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
-  const [mode, setMode] = useState('dark'); // Default to dark for "Modern" feel
-
-  const theme = useMemo(() => getTheme(mode), [mode]);
-
-  const toggleColorMode = () => {
-    setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
-  };
-
   return (
     <Router>
-      <AuthProvider>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
+      <ThemeContextProvider>
+        <CssBaseline />
+        <AuthProvider>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={
               <ProtectedRoute>
-                <Layout toggleColorMode={toggleColorMode} mode={mode}>
+                <Layout>
                   <Dashboard />
                 </Layout>
               </ProtectedRoute>
             } />
             <Route path="/expenses" element={
               <ProtectedRoute>
-                <Layout toggleColorMode={toggleColorMode} mode={mode}>
+                <Layout>
                   <Expenses />
                 </Layout>
               </ProtectedRoute>
             } />
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <Layout>
+                  <Settings />
+                </Layout>
+              </ProtectedRoute>
+            } />
           </Routes>
-        </ThemeProvider>
-      </AuthProvider>
+        </AuthProvider>
+      </ThemeContextProvider>
     </Router>
   );
 }
