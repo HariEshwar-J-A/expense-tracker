@@ -4,7 +4,6 @@ import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon, FilterList as F
 import axios from 'axios';
 import ExpenseForm from '../components/ExpenseForm';
 import { format } from 'date-fns';
-import { format } from 'date-fns';
 import { formatDateForDisplay } from '../utils/dateHelpers';
 
 import { useAuth } from '../context/AuthContext';
@@ -79,63 +78,44 @@ const Expenses = () => {
         setFilters({ category: '', startDate: '', endDate: '', minAmount: '', maxAmount: '' });
     };
 
-    const handleExportPDF = () => {
-        const doc = new jsPDF();
+    const handleExportPDF = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const params = {
+                ...filters,
+                ...sortConfig,
+                limit: 10000 // Get all records
+            };
 
-        // Title
-        doc.setFontSize(18);
-        doc.text('Expense Report', 14, 22);
+            const response = await axios.get('/api/expenses/export', {
+                headers: { Authorization: `Bearer ${token}` },
+                params,
+                responseType: 'blob',
+            });
 
-        // Date Range / Filter info
-        doc.setFontSize(11);
-        doc.text(`Generated on: ${formatDateForDisplay(new Date().toISOString())}`, 14, 30);
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
 
-        let filterText = 'Filters: ';
-        if (filters.category) filterText += `Category: ${filters.category}, `;
-        if (filters.startDate) filterText += `Start: ${filters.startDate}, `;
-        if (filters.endDate) filterText += `End: ${filters.endDate}`;
-        if (filterText === 'Filters: ') filterText += 'None';
+            const contentDisposition = response.headers['content-disposition'];
+            let filename = `Expenses_${formatDateForDisplay(new Date().toISOString())}.pdf`;
+            if (contentDisposition) {
+                // Match content inside quotes: filename="example.pdf"
+                const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+                if (filenameMatch && filenameMatch.length === 2) {
+                    filename = filenameMatch[1];
+                }
+            }
 
-        doc.text(filterText, 14, 36);
-
-        // Table
-        const tableColumn = ["Date", "Vendor", "Category", "Amount (CAD)"];
-        const tableRows = [];
-
-        expenses.forEach(expense => {
-            const expenseData = [
-                formatDateForDisplay(expense.date),
-                expense.vendor,
-                expense.category,
-                `$${Number(expense.amount).toFixed(2)}`
-            ];
-            tableRows.push(expenseData);
-        });
-
-        autoTable(doc, {
-            head: [tableColumn],
-            body: tableRows,
-            startY: 42,
-            theme: 'grid',
-            styles: { fontSize: 10 },
-            headStyles: { fillColor: [108, 99, 255] } // Matches our primary color
-        });
-
-        // Total
-        const finalY = doc.lastAutoTable.finalY + 10;
-        const totalAmount = expenses.reduce((sum, item) => sum + Number(item.amount), 0);
-        doc.setFontSize(14);
-        doc.text(`Total Spending: $${totalAmount.toFixed(2)}`, 14, finalY);
-
-        // Generate Filename
-        const dateStr = formatDateForDisplay(new Date().toISOString()).replace(/, /g, '_').replace(/ /g, '_');
-        const username = user?.username || 'User';
-        let filename = `${username}_Expenses_${dateStr}`;
-
-        if (filters.category) filename += `_${filters.category}`;
-        filename += '.pdf';
-
-        doc.save(filename);
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Export failed', error);
+            alert('Failed to export PDF');
+        }
     };
 
     return (
