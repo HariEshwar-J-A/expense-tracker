@@ -8,7 +8,10 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatDateForDisplay } from '../utils/dateHelpers';
 
+import { useAuth } from '../context/AuthContext';
+
 const Expenses = () => {
+    const { user } = useAuth();
     const [expenses, setExpenses] = useState([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -125,7 +128,15 @@ const Expenses = () => {
         doc.setFontSize(14);
         doc.text(`Total Spending: $${totalAmount.toFixed(2)}`, 14, finalY);
 
-        doc.save('expense_report.pdf');
+        // Generate Filename
+        const dateStr = formatDateForDisplay(new Date().toISOString()).replace(/, /g, '_').replace(/ /g, '_');
+        const username = user?.username || 'User';
+        let filename = `${username}_Expenses_${dateStr}`;
+
+        if (filters.category) filename += `_${filters.category}`;
+        filename += '.pdf';
+
+        doc.save(filename);
     };
 
     return (
