@@ -34,12 +34,40 @@ const LoginPage = () => {
     };
 
     return (
-        <Container component="main" maxWidth="xs" sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Paper sx={{ p: 4, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                <Typography component="h1" variant="h5" fontWeight="bold">
+        <Box
+            component="main"
+            sx={{
+                minHeight: '100vh',
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                p: 2
+            }}
+        >
+            <Paper
+                elevation={6}
+                sx={{
+                    p: 4,
+                    width: '100%',
+                    maxWidth: 400,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 2,
+                    borderRadius: 4
+                }}
+            >
+                <Typography component="h1" variant="h4" fontWeight="bold" sx={{ mb: 1 }}>
                     {isLogin ? 'Welcome Back' : 'Create Account'}
                 </Typography>
-                {error && <Alert severity="error" sx={{ width: '100%' }}>{error}</Alert>}
+
+                {error && (
+                    <Alert severity="error" sx={{ width: '100%', borderRadius: 2 }}>
+                        {error}
+                    </Alert>
+                )}
+
                 <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
                     <TextField
                         margin="normal"
@@ -49,6 +77,8 @@ const LoginPage = () => {
                         autoFocus
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
+                        placeholder="Enter your username"
+                        InputProps={{ sx: { borderRadius: 3 } }}
                     />
                     <TextField
                         margin="normal"
@@ -58,25 +88,34 @@ const LoginPage = () => {
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter your password"
+                        InputProps={{ sx: { borderRadius: 3 } }}
                     />
+
                     <Button
                         type="submit"
                         fullWidth
                         variant="contained"
-                        sx={{ mt: 3, mb: 2, height: 48 }}
+                        size="large"
+                        sx={{ mt: 3, mb: 2, height: 50, fontSize: '1.1rem' }}
                     >
                         {isLogin ? 'Login' : 'Sign Up'}
                     </Button>
+
                     <Button
                         fullWidth
                         variant="text"
-                        onClick={() => setIsLogin(!isLogin)}
+                        onClick={() => {
+                            setIsLogin(!isLogin);
+                            setError('');
+                        }}
+                        sx={{ textTransform: 'none' }}
                     >
                         {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Login"}
                     </Button>
                 </Box>
             </Paper>
-        </Container>
+        </Box>
     );
 };
 
