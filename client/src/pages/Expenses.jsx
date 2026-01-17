@@ -74,6 +74,57 @@ const Expenses = () => {
         setFilters({ category: '', startDate: '', endDate: '', minAmount: '', maxAmount: '' });
     };
 
+    const handleExportPDF = () => {
+        const doc = new jsPDF();
+
+        // Title
+        doc.setFontSize(18);
+        doc.text('Expense Report', 14, 22);
+
+        // Date Range / Filter info
+        doc.setFontSize(11);
+        doc.text(`Generated on: ${formatDateForDisplay(new Date().toISOString())}`, 14, 30);
+
+        let filterText = 'Filters: ';
+        if (filters.category) filterText += `Category: ${filters.category}, `;
+        if (filters.startDate) filterText += `Start: ${filters.startDate}, `;
+        if (filters.endDate) filterText += `End: ${filters.endDate}`;
+        if (filterText === 'Filters: ') filterText += 'None';
+
+        doc.text(filterText, 14, 36);
+
+        // Table
+        const tableColumn = ["Date", "Vendor", "Category", "Amount (CAD)"];
+        const tableRows = [];
+
+        expenses.forEach(expense => {
+            const expenseData = [
+                formatDateForDisplay(expense.date),
+                expense.vendor,
+                expense.category,
+                `$${Number(expense.amount).toFixed(2)}`
+            ];
+            tableRows.push(expenseData);
+        });
+
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: 42,
+            theme: 'grid',
+            styles: { fontSize: 10 },
+            headStyles: { fillColor: [108, 99, 255] } // Matches our primary color
+        });
+
+        // Total
+        const finalY = doc.lastAutoTable.finalY + 10;
+        const totalAmount = expenses.reduce((sum, item) => sum + Number(item.amount), 0);
+        doc.setFontSize(14);
+        doc.text(`Total Spending: $${totalAmount.toFixed(2)}`, 14, finalY);
+
+        doc.save('expense_report.pdf');
+    };
+
     return (
         <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -82,6 +133,9 @@ const Expenses = () => {
                     <IconButton onClick={() => setShowFilters(!showFilters)} color={showFilters ? 'primary' : 'default'}>
                         <FilterListIcon />
                     </IconButton>
+                    <Button variant="outlined" onClick={handleExportPDF} sx={{ ml: 2 }}>
+                        Export PDF
+                    </Button>
                     <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditingExpense(null); setOpenForm(true); }} sx={{ ml: 2 }}>
                         Add Expense
                     </Button>
