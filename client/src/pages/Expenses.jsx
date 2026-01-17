@@ -4,6 +4,9 @@ import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon, FilterList as F
 import axios from 'axios';
 import ExpenseForm from '../components/ExpenseForm';
 import { format } from 'date-fns';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { formatDateForDisplay } from '../utils/dateHelpers';
 
 const Expenses = () => {
     const [expenses, setExpenses] = useState([]);
