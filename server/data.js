@@ -11,7 +11,7 @@ const expenses = [
         id: '1',
         userId: 'demo-user', // specific for demo
         amount: 50.00,
-        date: new Date().toISOString(),
+        date: new Date().toISOString().split('T')[0],
         vendor: 'Grocery Store',
         category: 'Food'
     },
@@ -19,7 +19,7 @@ const expenses = [
         id: '2',
         userId: 'demo-user',
         amount: 20.00,
-        date: new Date(Date.now() - 86400000).toISOString(), // Yesterday
+        date: new Date(Date.now() - 86400000).toISOString().split('T')[0], // Yesterday
         vendor: 'Uber',
         category: 'Transport'
     }
