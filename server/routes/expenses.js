@@ -15,14 +15,42 @@ router.get('/stats', auth, (req, res) => {
             return acc;
         }, {});
 
-        // Daily Totals (Last 30 days)
+        // Daily Totals (Last 30 days - or all available for simplicity in demo)
         const dailyStats = userExpenses.reduce((acc, curr) => {
             const date = curr.date.split('T')[0];
             acc[date] = (acc[date] || 0) + Number(curr.amount);
             return acc;
         }, {});
 
-        res.json({ categoryStats, dailyStats });
+        // New KPIs
+        const totalSpend = userExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+        const avgTransaction = userExpenses.length > 0 ? totalSpend / userExpenses.length : 0;
+
+        let topCategory = { name: 'N/A', amount: 0 };
+        for (const [cat, amount] of Object.entries(categoryStats)) {
+            if (amount > topCategory.amount) topCategory = { name: cat, amount };
+        }
+
+        const vendorStats = userExpenses.reduce((acc, curr) => {
+            acc[curr.vendor] = (acc[curr.vendor] || 0) + Number(curr.amount);
+            return acc;
+        }, {});
+
+        let topVendor = { name: 'N/A', amount: 0 };
+        for (const [ven, amount] of Object.entries(vendorStats)) {
+            if (amount > topVendor.amount) topVendor = { name: ven, amount };
+        }
+
+        res.json({
+            categoryStats,
+            dailyStats,
+            kpis: {
+                totalSpend,
+                avgTransaction,
+                topCategory,
+                topVendor
+            }
+        });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
@@ -32,7 +60,7 @@ router.get('/stats', auth, (req, res) => {
 // GET /api/expenses
 router.get('/', auth, (req, res) => {
     try {
-        const { category, startDate, endDate, page = 1, limit = 10 } = req.query;
+        const { category, startDate, endDate, minAmount, maxAmount, sortBy = 'date', order = 'desc', page = 1, limit = 10 } = req.query;
         const userId = req.user.id;
 
         let filtered = expenses.filter(e => e.userId === userId);
@@ -50,8 +78,34 @@ router.get('/', auth, (req, res) => {
             filtered = filtered.filter(e => new Date(e.date) <= new Date(endDate));
         }
 
-        // Sort by Date (Desc)
-        filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+        // Filter by Amount Range
+        if (minAmount) {
+            filtered = filtered.filter(e => Number(e.amount) >= Number(minAmount));
+        }
+        if (maxAmount) {
+            filtered = filtered.filter(e => Number(e.amount) <= Number(maxAmount));
+        }
+
+        // Sorting
+        filtered.sort((a, b) => {
+            let valA = a[sortBy];
+            let valB = b[sortBy];
+
+            // Numeric handling for amount
+            if (sortBy === 'amount') {
+                valA = Number(valA);
+                valB = Number(valB);
+            }
+            // Date handling
+            if (sortBy === 'date') {
+                valA = new Date(valA);
+                valB = new Date(valB);
+            }
+
+            if (valA < valB) return order === 'asc' ? -1 : 1;
+            if (valA > valB) return order === 'asc' ? 1 : -1;
+            return 0;
+        });
 
         // Totals Calculation (before pagination)
         const totalAmount = filtered.reduce((sum, e) => sum + Number(e.amount), 0);
