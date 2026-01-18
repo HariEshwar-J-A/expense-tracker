@@ -25,6 +25,37 @@ const Layout = ({ children }) => {
 
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      {/* Skip Link for Accessibility */}
+      <a
+        href="#main-content"
+        style={{
+          position: "absolute",
+          top: "-9999px",
+          left: "-9999px",
+          width: "1px",
+          height: "1px",
+          overflow: "hidden",
+          zIndex: 9999,
+          padding: "1rem",
+          background: "var(--mui-palette-background-paper)",
+          color: "var(--mui-palette-primary-main)",
+          textDecoration: "none",
+        }}
+        onFocus={(e) => {
+          e.target.style.top = "0";
+          e.target.style.left = "0";
+          e.target.style.width = "auto";
+          e.target.style.height = "auto";
+        }}
+        onBlur={(e) => {
+          e.target.style.top = "-9999px";
+          e.target.style.left = "-9999px";
+          e.target.style.width = "1px";
+          e.target.style.height = "1px";
+        }}
+      >
+        Skip to main content
+      </a>
       <AppBar
         position="sticky"
         color="inherit"
@@ -109,9 +140,11 @@ const Layout = ({ children }) => {
         </Container>
       </AppBar>
       <Container
+        id="main-content"
         maxWidth="lg"
         component="main"
-        sx={{ flexGrow: 1, py: 4 }}
+        sx={{ flexGrow: 1, py: 4, outline: "none" }}
+        tabIndex={-1}
       >
         {children}
       </Container>
