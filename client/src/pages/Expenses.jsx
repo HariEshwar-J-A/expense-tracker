@@ -167,22 +167,24 @@ const Expenses = () => {
             <Box
                 sx={{
                     display: "flex",
+                    flexDirection: { xs: "column", sm: "row" }, // Stack on mobile
                     justifyContent: "space-between",
-                    alignItems: "center",
+                    alignItems: { xs: "stretch", sm: "center" }, // Stretch buttons on mobile
+                    gap: 2,
                     mb: 3,
                 }}
             >
                 <Typography variant="h4" fontWeight="bold">
                     Expenses
                 </Typography>
-                <Box>
+                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                     <IconButton
                         onClick={() => setShowFilters(!showFilters)}
                         color={showFilters ? "primary" : "default"}
                     >
                         <FilterListIcon />
                     </IconButton>
-                    <Button variant="outlined" onClick={handleExportPDF} sx={{ ml: 2 }}>
+                    <Button variant="outlined" onClick={handleExportPDF}>
                         Export PDF
                     </Button>
                     <Button
@@ -192,7 +194,6 @@ const Expenses = () => {
                             setEditingExpense(null);
                             setOpenForm(true);
                         }}
-                        sx={{ ml: 2 }}
                     >
                         Add Expense
                     </Button>
@@ -296,7 +297,7 @@ const Expenses = () => {
                 </Paper>
             </Collapse>
 
-            <TableContainer component={Paper}>
+            <TableContainer component={Paper} sx={{ overflowX: "auto" }}>
                 <Table>
                     <TableHead>
                         <TableRow>

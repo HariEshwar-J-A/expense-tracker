@@ -86,8 +86,9 @@ const Dashboard = () => {
         const radius = Math.min(width, height) / 2;
 
         const g = svg
-            .attr("width", width)
-            .attr("height", height)
+            .attr("viewBox", `0 0 ${width} ${height}`)
+            .style("width", "100%")
+            .style("height", "auto")
             .append("g")
             .attr("transform", `translate(${width / 2},${height / 2})`);
 
@@ -147,12 +148,15 @@ const Dashboard = () => {
         if (dataArray.length === 0) return;
 
         const margin = { top: 20, right: 30, bottom: 40, left: 40 };
-        const width = 500 - margin.left - margin.right;
-        const height = 300 - margin.top - margin.bottom;
+        const totalWidth = 500;
+        const totalHeight = 300;
+        const width = totalWidth - margin.left - margin.right;
+        const height = totalHeight - margin.top - margin.bottom;
 
         const g = svg
-            .attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom)
+            .attr("viewBox", `0 0 ${totalWidth} ${totalHeight}`)
+            .style("width", "100%")
+            .style("height", "auto")
             .append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
 

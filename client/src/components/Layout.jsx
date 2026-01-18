@@ -34,12 +34,13 @@ const Layout = ({ children }) => {
         sx={{ borderBottom: 1, borderColor: "divider" }}
       >
         <Container maxWidth="lg">
-          <Toolbar disableGutters>
+          <Toolbar disableGutters sx={{ flexWrap: "wrap" }}>
             <Typography
               variant="h6"
               component="div"
               sx={{
-                mr: 4,
+                mr: 2,
+                flexGrow: { xs: 1, md: 0 }, // Take space on mobile
                 fontWeight: 700,
                 background:
                   "-webkit-linear-gradient(45deg, #6C63FF 30%, #FF6584 90%)",
@@ -50,7 +51,18 @@ const Layout = ({ children }) => {
               ExpenseTracker
             </Typography>
 
-            <Box sx={{ flexGrow: 1, display: "flex", gap: 1 }}>
+            <Box
+              sx={{
+                flexGrow: 1,
+                display: "flex",
+                gap: 1,
+                overflowX: "auto", // Allow scrolling for menu items if super small
+                order: { xs: 3, md: 2 }, // Move nav to bottom row on mobile if needed
+                width: { xs: "100%", md: "auto" },
+                mt: { xs: 1, md: 0 },
+                pb: { xs: 1, md: 0 },
+              }}
+            >
               <Button
                 startIcon={<DashboardIcon />}
                 color={location.pathname === "/" ? "primary" : "inherit"}
@@ -81,17 +93,19 @@ const Layout = ({ children }) => {
               </Button>
             </Box>
 
-            <IconButton
-              onClick={toggleColorMode}
-              color="inherit"
-              sx={{ mr: 1 }}
-            >
-              {mode === "dark" ? <LightModeIcon /> : <DarkModeIcon />}
-            </IconButton>
+            <Box sx={{ display: "flex", order: { xs: 2, md: 3 } }}>
+              <IconButton
+                onClick={toggleColorMode}
+                color="inherit"
+                sx={{ mr: 1 }}
+              >
+                {mode === "dark" ? <LightModeIcon /> : <DarkModeIcon />}
+              </IconButton>
 
-            <IconButton onClick={logout} color="primary">
-              <LogoutIcon />
-            </IconButton>
+              <IconButton onClick={logout} color="primary">
+                <LogoutIcon />
+              </IconButton>
+            </Box>
           </Toolbar>
         </Container>
       </AppBar>
