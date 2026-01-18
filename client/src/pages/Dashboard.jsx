@@ -7,23 +7,42 @@ import {
     useTheme,
     Card,
     CardContent,
+    Button,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    TextField,
+    InputAdornment,
 } from "@mui/material";
+import { useAuth } from "../context/AuthContext";
 import { useThemeContext } from "../context/ThemeContext";
 import axios from "axios";
 import * as d3 from "d3";
-import { AttachMoney, ShowChart, Category, Store } from "@mui/icons-material";
+import { AttachMoney, ShowChart, Category, Store, CalendarMonth, CalendarToday } from "@mui/icons-material";
+import { ToggleButton, ToggleButtonGroup } from "@mui/material";
 
 const Dashboard = () => {
     const theme = useTheme();
     const { primaryColor } = useThemeContext();
+    const { user, updateUser } = useAuth(); // Moved here
     const [stats, setStats] = useState(null);
+    const [period, setPeriod] = useState("monthly"); // Local state for toggle
     const pieRef = useRef();
     const barRef = useRef();
+
+    // Sync local period with user preference on load
+    useEffect(() => {
+        if (user?.budgetPeriod) {
+            setPeriod(user.budgetPeriod);
+        }
+    }, [user?.budgetPeriod]);
 
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const res = await axios.get("/api/expenses/stats");
+                // Fetch stats for the selected period
+                const res = await axios.get(`/api/expenses/stats?period=${period}`);
                 const backendStats = res.data;
 
                 // Transform backend stats format to match frontend expectations
@@ -67,7 +86,7 @@ const Dashboard = () => {
             }
         };
         fetchStats();
-    }, []);
+    }, [period]);
 
     useEffect(() => {
         if (!stats) return;
@@ -364,87 +383,332 @@ const Dashboard = () => {
             .style("opacity", 1);
     };
 
-    const KPICard = ({ title, value, icon, subtext }) => (
-        <Card
-            sx={{
-                height: "100%",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-            }}
-        >
-            <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Box
-                    sx={{
-                        p: 1.5,
-                        borderRadius: 3,
-                        bgcolor:
-                            theme.palette.mode === "dark"
-                                ? "rgba(255,255,255,0.05)"
-                                : "rgba(0,0,0,0.05)",
-                        color: theme.palette.primary.main,
-                    }}
-                >
-                    {icon}
+    // --- Visual Components ---
+
+    const SafeToSpendGauge = ({ safe, budget, periodLabel }) => {
+        const percentage = Math.min(100, Math.max(0, (safe / budget) * 100));
+        const color = percentage < 20 ? "#ff4d4d" : percentage < 50 ? "#ff9800" : "#00e676";
+
+        // Simple Semi-Circle Gauge using CSS/SVG
+        return (
+            <Paper elevation={3} sx={{ p: 3, borderRadius: 4, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                    Safe to Spend
+                </Typography>
+                <Box sx={{ position: 'relative', width: 200, height: 100, overflow: 'hidden', mb: 2 }}>
+                    <Box sx={{
+                        width: 200,
+                        height: 200,
+                        borderRadius: '50%',
+                        border: '20px solid ' + theme.palette.action.hover,
+                        borderBottomColor: 'transparent',
+                        borderRightColor: 'transparent',
+                        transform: 'rotate(135deg)', // Base background arc
+                        position: 'absolute'
+                    }} />
+                    <Box sx={{
+                        width: 200,
+                        height: 200,
+                        borderRadius: '50%',
+                        border: '20px solid ' + color,
+                        borderBottomColor: 'transparent',
+                        borderRightColor: 'transparent',
+                        transform: `rotate(${135 + (1.8 * percentage)}deg)`, // Dynamic arc
+                        transition: 'transform 1s ease-out',
+                        position: 'absolute',
+                        zIndex: 2
+                    }} />
                 </Box>
-                <Box>
-                    <Typography variant="body2" color="text.secondary" fontWeight={500}>
-                        {title}
+                <Typography variant="h3" fontWeight="bold" sx={{ color }}>
+                    ${safe.toFixed(0)}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                    ${budget.toFixed(0)} {periodLabel} Budget
+                </Typography>
+            </Paper>
+        );
+    };
+
+    const VelocityWidget = ({ velocity, budget, totalSpent, daysInPeriod, currentDay, periodLabel }) => {
+        const percentUsed = Math.min(100, (totalSpent / budget) * 100);
+        const percentTime = Math.min(100, (currentDay / daysInPeriod) * 100);
+
+        return (
+            <Paper elevation={3} sx={{ p: 3, borderRadius: 4, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                    <Typography variant="h6" color="text.secondary">Spending Velocity</Typography>
+                    <Typography variant="h6" fontWeight="bold" color={velocity > budget ? "error.main" : "success.main"}>
+                        {velocity > budget ? "Trending High" : "On Track"}
                     </Typography>
-                    <Typography variant="h5" fontWeight={700}>
-                        {value}
-                    </Typography>
-                    {subtext && (
-                        <Typography variant="caption" color="text.secondary">
-                            {subtext}
-                        </Typography>
-                    )}
                 </Box>
-            </CardContent>
-        </Card>
-    );
+
+                <Box sx={{ position: 'relative', height: 40, bgcolor: theme.palette.action.hover, borderRadius: 20, mb: 1, overflow: 'hidden' }}>
+                    {/* Progress Bar */}
+                    <Box sx={{
+                        position: 'absolute', left: 0, top: 0, bottom: 0,
+                        width: `${percentUsed}%`,
+                        bgcolor: theme.palette.primary.main,
+                        transition: 'width 1s'
+                    }} />
+
+                    {/* Expected Marker line */}
+                    <Box sx={{
+                        position: 'absolute', left: `${percentTime}%`, top: 0, bottom: 0,
+                        borderLeft: `3px dashed ${theme.palette.text.primary}`,
+                        zIndex: 2
+                    }} />
+                </Box>
+
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', px: 1 }}>
+                    <Typography variant="caption">$0</Typography>
+                    <Typography variant="caption" fontWeight="bold">Current: ${totalSpent.toFixed(0)}</Typography>
+                    <Typography variant="caption">Budget: ${budget.toFixed(0)}</Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
+                    Projected {periodLabel}-End: <strong>${velocity.toFixed(0)}</strong>
+                </Typography>
+            </Paper>
+        );
+    };
+
+    // --- NEW: Budget & Analytics Logic ---
+    const [openBudgetDialog, setOpenBudgetDialog] = useState(false);
+    const [budgetInput, setBudgetInput] = useState("");
+    const [activeSlide, setActiveSlide] = useState(0);
+
+    // Prompt for budget if 0 or null
+    useEffect(() => {
+        if (user && (!user.monthlyBudget || user.monthlyBudget === 0)) {
+            // Optional: Auto-open dialog, or just show a button.
+            setOpenBudgetDialog(true);
+        }
+    }, [user]);
+
+    const handleSaveBudget = async () => {
+        const amount = parseFloat(budgetInput);
+        if (amount > 0) {
+            await updateUser({ monthlyBudget: amount });
+            setOpenBudgetDialog(false);
+        }
+    };
+
+    const handlePeriodChange = async (event, newPeriod) => {
+        if (newPeriod !== null && newPeriod !== period) {
+            setPeriod(newPeriod);
+            // Persist choice to DB
+            await updateUser({ budgetPeriod: newPeriod });
+        }
+    };
+
+    // Calculate Advanced Metrics
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const daysInMonth = new Date(currentYear, today.getMonth() + 1, 0).getDate();
+    const dayOfMonth = today.getDate();
+
+    // Yearly calc elements
+    const startOfYear = new Date(currentYear, 0, 1);
+    const dayOfYear = Math.floor((today - startOfYear) / (1000 * 60 * 60 * 24)) + 1;
+    const isLeapYear = (currentYear % 4 === 0 && currentYear % 100 !== 0) || (currentYear % 400 === 0);
+    const daysInYear = isLeapYear ? 366 : 365;
+
+    const totalSpent = stats?.kpis?.totalSpend || 0;
+
+    // Determine Budget & Timeframe based on selected period
+    const effectiveBudget = period === 'yearly' ? (user?.monthlyBudget || 0) * 12 : (user?.monthlyBudget || 0);
+    const daysInPeriod = period === 'yearly' ? daysInYear : daysInMonth;
+    const currentDay = period === 'yearly' ? dayOfYear : dayOfMonth;
+    const periodLabel = period === 'yearly' ? 'Annual' : 'Monthly';
+
+    const safeToSpend = Math.max(0, effectiveBudget - totalSpent);
+    const spendVelocity = currentDay > 0 ? (totalSpent / currentDay) * daysInPeriod : 0;
+
+    // Metrics for Carousel (Simplified - Standard Stats Only)
+    const metricSlides = [
+        {
+            title: "Total Spending",
+            value: `$${totalSpent.toFixed(2)}`,
+            subtext: `This ${period === 'yearly' ? 'Year' : 'Month'}`,
+            icon: <AttachMoney sx={{ fontSize: 40 }} />,
+            color: theme.palette.primary.main
+        },
+        {
+            title: "Top Category",
+            value: stats?.kpis?.topCategory?.name || "N/A",
+            subtext: `$${stats?.kpis?.topCategory?.amount?.toFixed(2) || "0.00"}`,
+            icon: <Category sx={{ fontSize: 40 }} />,
+            color: theme.palette.secondary.main
+        },
+        {
+            title: "Top Vendor",
+            value: stats?.kpis?.topVendor?.name || "N/A",
+            subtext: `$${stats?.kpis?.topVendor?.amount?.toFixed(2) || "0.00"}`,
+            icon: <Store sx={{ fontSize: 40 }} />,
+            color: theme.palette.info.main
+        },
+        {
+            title: "Avg Transaction",
+            value: `$${stats?.kpis?.avgTransaction?.toFixed(2) || "0.00"}`,
+            subtext: "Per purchase",
+            icon: <ShowChart sx={{ fontSize: 40 }} />,
+            color: theme.palette.warning.main
+        }
+    ];
+
+    // Auto-play Carousel
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setActiveSlide((prev) => (prev + 1) % metricSlides.length);
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [metricSlides.length]);
 
     return (
-        <Box>
-            <Typography variant="h4" fontWeight="bold" gutterBottom>
-                Dashboard
-            </Typography>
+        <Box sx={{ pb: 4 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h4" fontWeight="bold">
+                    Dashboard
+                </Typography>
+                <Button
+                    variant="outlined"
+                    onClick={() => setOpenBudgetDialog(true)}
+                    startIcon={<AttachMoney />}
+                    sx={{ mr: 2 }}
+                >
+                    {user?.monthlyBudget > 0 ? "Edit Budget" : "Set Budget"}
+                </Button>
 
-            {/* KPI Cards */}
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                    <KPICard
-                        title="Total Spending"
-                        value={`$${stats?.kpis?.totalSpend?.toFixed(2) || "0.00"}`}
-                        icon={<AttachMoney />}
-                    />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                    <KPICard
-                        title="Avg Transaction"
-                        value={`$${stats?.kpis?.avgTransaction?.toFixed(2) || "0.00"}`}
-                        icon={<ShowChart />}
-                    />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                    <KPICard
-                        title="Top Category"
-                        value={stats?.kpis?.topCategory?.name || "N/A"}
-                        subtext={`$${stats?.kpis?.topCategory?.amount?.toFixed(2) || "0.00"}`}
-                        icon={<Category />}
-                    />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                    <KPICard
-                        title="Top Vendor"
-                        value={stats?.kpis?.topVendor?.name || "N/A"}
-                        subtext={`$${stats?.kpis?.topVendor?.amount?.toFixed(2) || "0.00"}`}
-                        icon={<Store />}
-                    />
-                </Grid>
-            </Grid>
+                <ToggleButtonGroup
+                    value={period}
+                    exclusive
+                    onChange={handlePeriodChange}
+                    aria-label="budget period"
+                    size="small"
+                >
+                    <ToggleButton value="monthly" aria-label="monthly">
+                        <CalendarMonth sx={{ mr: 1 }} /> Month
+                    </ToggleButton>
+                    <ToggleButton value="yearly" aria-label="yearly">
+                        <CalendarToday sx={{ mr: 1 }} /> Year
+                    </ToggleButton>
+                </ToggleButtonGroup>
+            </Box>
 
-            {/* Charts */}
+            {/* Top Row: Persistent Analytics Widgets */}
+            {user?.monthlyBudget > 0 && (
+                <Grid container spacing={3} sx={{ mb: 4 }}>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <SafeToSpendGauge safe={safeToSpend} budget={effectiveBudget} periodLabel={periodLabel} />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <VelocityWidget
+                            velocity={spendVelocity}
+                            budget={effectiveBudget}
+                            totalSpent={totalSpent}
+                            daysInPeriod={daysInPeriod}
+                            currentDay={currentDay}
+                            periodLabel={periodLabel}
+                        />
+                    </Grid>
+                </Grid>
+            )}
+
+            {/* Middle Row: Quick Stats Carousel */}
+            <Paper
+                elevation={3}
+                sx={{
+                    p: 3,
+                    mb: 4,
+                    borderRadius: 4,
+                    background: `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${theme.palette.background.default} 100%)`,
+                    position: "relative",
+                    overflow: "hidden",
+                    minHeight: 180,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                }}
+            >
+                {metricSlides.map((slide, index) => (
+                    <Box
+                        key={index}
+                        sx={{
+                            display: activeSlide === index ? "flex" : "none",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            animation: "slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
+                            "@keyframes slideUp": {
+                                "0%": { opacity: 0, transform: "translateY(20px)" },
+                                "100%": { opacity: 1, transform: "translateY(0)" }
+                            },
+                            textAlign: 'center',
+                            width: '100%'
+                        }}
+                    >
+                        <Box sx={{ color: slide.color, mb: 0.5 }}>{slide.icon}</Box>
+                        <Typography variant="overline" color="text.secondary" letterSpacing={1.5}>
+                            {slide.title}
+                        </Typography>
+                        <Typography variant="h3" fontWeight="bold" sx={{ color: slide.color, my: 0.5 }}>
+                            {slide.value}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            {slide.subtext}
+                        </Typography>
+                    </Box>
+                ))}
+
+                {/* Carousel Indicators */}
+                <Box sx={{ position: "absolute", bottom: 12, display: "flex", gap: 1 }}>
+                    {metricSlides.map((_, index) => (
+                        <Box
+                            key={index}
+                            onClick={() => setActiveSlide(index)}
+                            sx={{
+                                width: activeSlide === index ? 24 : 8,
+                                height: 8,
+                                borderRadius: 4,
+                                bgcolor: activeSlide === index ? 'primary.main' : 'action.disabled',
+                                cursor: 'pointer',
+                                transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)"
+                            }}
+                        />
+                    ))}
+                </Box>
+            </Paper>
+
+            {/* Budget Dialog */}
+            <Dialog open={openBudgetDialog} onClose={() => setOpenBudgetDialog(false)}>
+                <DialogTitle>Set Monthly Spendable Income</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" sx={{ mb: 2 }}>
+                        Enter your total monthly budget to unlock "Safe-to-Spend" and "Velocity" insights.
+                    </Typography>
+                    <TextField
+                        autoFocus
+                        margin="dense"
+                        label="Monthly Budget ($)"
+                        type="number"
+                        fullWidth
+                        variant="outlined"
+                        value={budgetInput}
+                        onChange={(e) => setBudgetInput(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveBudget();
+                        }}
+                        slotProps={{
+                            input: { startAdornment: <InputAdornment position="start">$</InputAdornment> }
+                        }}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpenBudgetDialog(false)}>Cancel</Button>
+                    <Button onClick={handleSaveBudget} variant="contained">Save Budget</Button>
+                </DialogActions>
+            </Dialog>
+
+
+            {/* Charts Row */}
             <Grid container spacing={3}>
                 <Grid size={{ xs: 12, md: 6 }}>
                     <Paper
@@ -454,6 +718,7 @@ const Dashboard = () => {
                             flexDirection: "column",
                             alignItems: "center",
                             minHeight: 400,
+                            borderRadius: 4
                         }}
                     >
                         <Typography variant="h6" gutterBottom>
@@ -470,6 +735,7 @@ const Dashboard = () => {
                             flexDirection: "column",
                             alignItems: "center",
                             minHeight: 400,
+                            borderRadius: 4
                         }}
                     >
                         <Typography variant="h6" gutterBottom>

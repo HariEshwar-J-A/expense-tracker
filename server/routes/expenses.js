@@ -48,7 +48,8 @@ router.post("/parse", auth, upload.single("receipt"), async (req, res) => {
 router.get("/stats", auth, async (req, res) => {
     try {
         const userId = req.user.id;
-        const stats = await Expense.getStats(userId);
+        const { period } = req.query; // 'monthly' or 'yearly'
+        const stats = await Expense.getStats(userId, period);
 
         res.json(stats);
     } catch (error) {

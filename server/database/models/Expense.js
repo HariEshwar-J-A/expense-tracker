@@ -172,26 +172,41 @@ class Expense {
    * @param {string} userId - User ID
    * @returns {Promise<Object>} Statistics
    */
-  static async getStats(userId) {
+  static async getStats(userId, period = 'monthly') {
     const adapter = getAdapter();
     const db = adapter.getConnection();
 
-    // Total expenses
+    // Determine Date Range
+    const now = new Date();
+    let startDate;
+
+    if (period === 'yearly') {
+      // Start of current year
+      startDate = new Date(now.getFullYear(), 0, 1);
+    } else {
+      // Default to monthly: Start of current month
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+    const startDateStr = startDate.toISOString().split('T')[0];
+
+    // Total expenses (Filtered by Period)
     const [totalResult] = await db("expenses")
       .where({ user_id: userId })
+      .where("date", ">=", startDateStr)
       .sum("amount as total")
       .count("* as count");
 
-    // By category
+    // By category (Filtered by Period)
     const byCategory = await db("expenses")
       .where({ user_id: userId })
+      .where("date", ">=", startDateStr)
       .select("category")
       .sum("amount as total")
       .count("* as count")
       .groupBy("category")
       .orderBy("total", "desc");
 
-    // Recent expenses (last 7 days)
+    // Recent expenses (Last 7 days - kept relative to today)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -201,7 +216,7 @@ class Expense {
       .sum("amount as total")
       .count("* as count");
 
-    // Monthly trend (last 6 months)
+    // Monthly trend (Last 6 Months - Always useful for context)
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
@@ -214,9 +229,10 @@ class Expense {
       .groupBy("month")
       .orderBy("month", "asc");
 
-    // Top vendor (by total spending)
+    // Top vendor (Filtered by Period)
     const topVendorResult = await db("expenses")
       .where({ user_id: userId })
+      .where("date", ">=", startDateStr)
       .select("vendor")
       .sum("amount as total")
       .groupBy("vendor")
@@ -235,6 +251,7 @@ class Expense {
         };
 
     return {
+      period,
       total: {
         amount: parseFloat(totalResult.total || 0).toFixed(2),
         count: parseInt(totalResult.count || 0),

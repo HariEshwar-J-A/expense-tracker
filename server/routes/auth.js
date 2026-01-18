@@ -144,4 +144,30 @@ router.get("/me", auth, async (req, res) => {
   }
 });
 
+/**
+ * PUT /api/auth/profile
+ * Update user profile (including budget)
+ */
+router.put("/profile", auth, async (req, res) => {
+  try {
+    const { firstName, lastName, monthlyBudget, budgetPeriod } = req.body;
+    const updates = {};
+
+    if (firstName !== undefined) updates.firstName = firstName;
+    if (lastName !== undefined) updates.lastName = lastName;
+    if (monthlyBudget !== undefined) updates.monthlyBudget = parseFloat(monthlyBudget);
+    if (budgetPeriod !== undefined) updates.budgetPeriod = budgetPeriod;
+
+    const updatedUser = await User.update(req.user.id, updates);
+
+    res.json({
+      message: "Profile updated successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("Profile update error:", error);
+    res.status(500).json({ message: "Server error during update" });
+  }
+});
+
 module.exports = router;

@@ -41,8 +41,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateUser = async (updates) => {
+    try {
+      const res = await axios.put("/api/auth/profile", updates);
+      if (res.data.user) {
+        setUser(res.data.user);
+        return { success: true };
+      }
+    } catch (error) {
+      console.error("Update profile error", error);
+      return { success: false, error: error.response?.data?.message || "Error updating profile" };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, loading }}>
       {!loading && children}
     </AuthContext.Provider>
   );

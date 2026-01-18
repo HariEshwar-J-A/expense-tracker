@@ -86,8 +86,17 @@ const generateExpenseReport = (expenses, filters, user, res) => {
             doc.text(`Category: ${filters.category}`, rightColX, filterY);
             filterY += 15;
         }
-    } else {
-        doc.text("All Records", rightColX, filterY);
+        filterY += 15;
+    }
+
+    // Sort Info
+    const sortField = filters.sortBy || "Date";
+    const sortOrder = filters.order === "asc" ? "Ascending" : "Descending";
+    doc.text(`Sorted By: ${sortField} (${sortOrder})`, rightColX, filterY);
+    filterY += 15;
+
+    if (!filters.category && !filters.startDate && !filters.endDate) {
+        doc.text("All Records Included", rightColX, filterY);
     }
 
     doc.moveDown(4); // Increased from 2 to 4 to push separator down

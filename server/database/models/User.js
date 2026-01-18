@@ -27,6 +27,8 @@ class User {
       password: hashedPassword,
       first_name: firstName || null,
       last_name: lastName || null,
+      monthly_budget: userData.monthlyBudget || 0,
+      budget_period: userData.budgetPeriod || "monthly",
       created_at: new Date(),
       updated_at: new Date(),
     };
@@ -74,6 +76,10 @@ class User {
     if (updates.firstName !== undefined)
       updateData.first_name = updates.firstName;
     if (updates.lastName !== undefined) updateData.last_name = updates.lastName;
+    if (updates.monthlyBudget !== undefined)
+      updateData.monthly_budget = updates.monthlyBudget;
+    if (updates.budgetPeriod !== undefined)
+      updateData.budget_period = updates.budgetPeriod;
     if (updates.email !== undefined)
       updateData.email = updates.email.toLowerCase().trim();
 
@@ -151,6 +157,8 @@ class User {
       email: sanitized.email,
       firstName: sanitized.first_name,
       lastName: sanitized.last_name,
+      monthlyBudget: sanitized.monthly_budget || 0,
+      budgetPeriod: sanitized.budget_period || "monthly",
       createdAt: sanitized.created_at,
       updatedAt: sanitized.updated_at,
     };
@@ -169,6 +177,8 @@ class User {
     if (data.password) dbData.password = data.password;
     if (data.firstName !== undefined) dbData.first_name = data.firstName;
     if (data.lastName !== undefined) dbData.last_name = data.lastName;
+    if (data.monthlyBudget !== undefined) dbData.monthly_budget = data.monthlyBudget;
+    if (data.budgetPeriod !== undefined) dbData.budget_period = data.budgetPeriod;
     if (data.createdAt) dbData.created_at = data.createdAt;
     if (data.updatedAt) dbData.updated_at = data.updatedAt;
 
