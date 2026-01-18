@@ -10,14 +10,12 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useThemeContext } from "../context/ThemeContext";
-import {
-  Dashboard as DashboardIcon,
-  Receipt as ReceiptIcon,
-  Logout as LogoutIcon,
-  Settings as SettingsIcon,
-  LightMode as LightModeIcon,
-  DarkMode as DarkModeIcon,
-} from "@mui/icons-material";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import ReceiptIcon from "@mui/icons-material/Receipt";
+import LogoutIcon from "@mui/icons-material/Logout";
+import SettingsIcon from "@mui/icons-material/Settings";
+import LightModeIcon from "@mui/icons-material/LightMode";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
 
 const Layout = ({ children }) => {
   const { logout } = useAuth();
@@ -97,19 +95,24 @@ const Layout = ({ children }) => {
               <IconButton
                 onClick={toggleColorMode}
                 color="inherit"
+                aria-label="Toggle color mode"
                 sx={{ mr: 1 }}
               >
                 {mode === "dark" ? <LightModeIcon /> : <DarkModeIcon />}
               </IconButton>
 
-              <IconButton onClick={logout} color="primary">
+              <IconButton onClick={logout} color="primary" aria-label="Logout">
                 <LogoutIcon />
               </IconButton>
             </Box>
           </Toolbar>
         </Container>
       </AppBar>
-      <Container maxWidth="lg" sx={{ flexGrow: 1, py: 4 }}>
+      <Container
+        maxWidth="lg"
+        component="main"
+        sx={{ flexGrow: 1, py: 4 }}
+      >
         {children}
       </Container>
       <Box
@@ -125,7 +128,7 @@ const Layout = ({ children }) => {
           textAlign: "center",
         }}
       >
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" color="text.primary">
           © {new Date().getFullYear()} Harieshwar Jagan Abirami. All rights
           reserved.
         </Typography>

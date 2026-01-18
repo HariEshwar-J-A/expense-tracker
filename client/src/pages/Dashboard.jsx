@@ -19,7 +19,12 @@ import { useAuth } from "../context/AuthContext";
 import { useThemeContext } from "../context/ThemeContext";
 import axios from "axios";
 import * as d3 from "d3";
-import { AttachMoney, ShowChart, Category, Store, CalendarMonth, CalendarToday } from "@mui/icons-material";
+import AttachMoney from "@mui/icons-material/AttachMoney";
+import ShowChart from "@mui/icons-material/ShowChart";
+import Category from "@mui/icons-material/Category";
+import Store from "@mui/icons-material/Store";
+import CalendarMonth from "@mui/icons-material/CalendarMonth";
+import CalendarToday from "@mui/icons-material/CalendarToday";
 import { ToggleButton, ToggleButtonGroup } from "@mui/material";
 
 const Dashboard = () => {
@@ -421,7 +426,7 @@ const Dashboard = () => {
         // Simple Semi-Circle Gauge using CSS/SVG
         return (
             <Paper elevation={3} sx={{ p: 3, borderRadius: 4, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                <Typography variant="h6" color="text.secondary" gutterBottom>
+                <Typography variant="h2" fontSize="1.5rem" color="text.primary" gutterBottom>
                     Safe to Spend
                 </Typography>
                 <Box sx={{ position: 'relative', width: 200, height: 100, overflow: 'hidden', mb: 2 }}>
@@ -465,8 +470,8 @@ const Dashboard = () => {
         return (
             <Paper elevation={3} sx={{ p: 3, borderRadius: 4, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                    <Typography variant="h6" color="text.secondary">Spending Velocity</Typography>
-                    <Typography variant="h6" fontWeight="bold" color={velocity > budget ? "error.main" : "success.main"}>
+                    <Typography variant="h2" fontSize="1.5rem" color="text.primary">Spending Velocity</Typography>
+                    <Typography variant="h3" fontSize="1.25rem" fontWeight="bold" color={velocity > budget ? "error.main" : "success.main"}>
                         {velocity > budget ? "Trending High" : "On Track"}
                     </Typography>
                 </Box>
@@ -594,33 +599,42 @@ const Dashboard = () => {
 
     return (
         <Box sx={{ pb: 4 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h4" fontWeight="bold">
+            <Box sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 2,
+                mb: 3
+            }}>
+                <Typography variant="h1" fontSize="2.5rem" fontWeight="bold">
                     Dashboard
                 </Typography>
-                <Button
-                    variant="outlined"
-                    onClick={() => setOpenBudgetDialog(true)}
-                    startIcon={<AttachMoney />}
-                    sx={{ mr: 2 }}
-                >
-                    {user?.monthlyBudget > 0 ? "Edit Budget" : "Set Budget"}
-                </Button>
 
-                <ToggleButtonGroup
-                    value={period}
-                    exclusive
-                    onChange={handlePeriodChange}
-                    aria-label="budget period"
-                    size="small"
-                >
-                    <ToggleButton value="monthly" aria-label="monthly">
-                        <CalendarMonth sx={{ mr: 1 }} /> Month
-                    </ToggleButton>
-                    <ToggleButton value="yearly" aria-label="yearly">
-                        <CalendarToday sx={{ mr: 1 }} /> Year
-                    </ToggleButton>
-                </ToggleButtonGroup>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                    <Button
+                        variant="outlined"
+                        onClick={() => setOpenBudgetDialog(true)}
+                        startIcon={<AttachMoney />}
+                    >
+                        {user?.monthlyBudget > 0 ? "Edit Budget" : "Set Budget"}
+                    </Button>
+
+                    <ToggleButtonGroup
+                        value={period}
+                        exclusive
+                        onChange={handlePeriodChange}
+                        aria-label="budget period"
+                        size="small"
+                    >
+                        <ToggleButton value="monthly" aria-label="monthly">
+                            <CalendarMonth sx={{ mr: 1 }} /> Month
+                        </ToggleButton>
+                        <ToggleButton value="yearly" aria-label="yearly">
+                            <CalendarToday sx={{ mr: 1 }} /> Year
+                        </ToggleButton>
+                    </ToggleButtonGroup>
+                </Box>
             </Box>
 
             {/* Top Row: Persistent Analytics Widgets */}
@@ -746,11 +760,12 @@ const Dashboard = () => {
                             display: "flex",
                             flexDirection: "column",
                             alignItems: "center",
+                            height: "100%",
                             minHeight: 400,
                             borderRadius: 4
                         }}
                     >
-                        <Typography variant="h6" gutterBottom>
+                        <Typography variant="h2" fontSize="1.5rem" gutterBottom>
                             Spending by Category
                         </Typography>
                         <svg ref={pieRef}></svg>
@@ -763,11 +778,12 @@ const Dashboard = () => {
                             display: "flex",
                             flexDirection: "column",
                             alignItems: "center",
+                            height: "100%",
                             minHeight: 400,
                             borderRadius: 4
                         }}
                     >
-                        <Typography variant="h6" gutterBottom>
+                        <Typography variant="h2" fontSize="1.5rem" gutterBottom>
                             Monthly Trends (Last 6 Months)
                         </Typography>
                         <svg ref={barRef} style={{ width: "100%", height: "auto" }}></svg>
