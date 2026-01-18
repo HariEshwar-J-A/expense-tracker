@@ -12,17 +12,22 @@ A full-stack expense tracking application with **intelligent PDF receipt parsing
 - Extracts: **Vendor**, **Date**, **Amount**, **Category**
 - Smart pattern matching for TOTAL/AMOUNT keywords
 
-### 💰 Expense Management
-- Add, edit, delete expenses
-- Category-based organization
-- Date range filtering
-- Statistics dashboard
-- Pagination & sorting
+### � Dashboard Analytics
+- **Visual Insights**: Interactive charts using D3.js
+- **Key Metrics**: Total Spend, Avg Transaction, Top Category, Top Vendor
+- **Trend Analysis**: Daily and monthly spending trends
+- **Category Breakdown**: visual pie charts
+
+### 📝 Enhanced Reporting
+- **Professional PDF Exports**: Executive summary, category breakdown, and detailed transaction tables
+- **Smart Formatting**: Zebra striping, pagination, and total calculations
+- **Secure Filenames**: Auto-generated timestamps and safe user identifiers
 
 ### 🔐 Authentication
 - JWT-based secure authentication
 - User registration & login
 - Protected routes
+- **Security Best Practices**: HttpOnly cookie ready (in progress)
 
 ---
 
@@ -282,10 +287,10 @@ PDF Upload
 
 **Frontend:**
 - React 18
-- Material-UI
+- Material-UI (with latest SlotProps API)
 - React Router
 - Axios
-- Recharts (for statistics)
+- D3.js (for custom data visualization)
 
 **Backend:**
 - Node.js + Express
@@ -293,10 +298,12 @@ PDF Upload
 - Multer (file uploads)
 - pdf-parse (text extraction)
 - OCR.space API (OCR fallback)
+- Knex.js (SQL Query Builder)
 
 **Data Storage:**
-- In-memory (for demo purposes)
-- Can be extended to MongoDB/PostgreSQL
+- SQLite (Default, Zero-config)
+- PostgreSQL (Production ready)
+- Extensible Adapter Pattern
 
 ---
 
@@ -400,18 +407,27 @@ Make sure your receipt has a clear total amount!
 
 ## 🚧 Future Enhancements
 
-- [ ] Database integration (MongoDB/PostgreSQL)
+- [x] Database integration (SQLite/PostgreSQL via Knex)
+- [x] Receipt storage & history (Persisted in DB)
+- [x] Advanced PDF Reporting
 - [ ] Receipt image uploads (JPG, PNG)
 - [ ] Multi-currency support
 - [ ] Export to CSV/Excel
-- [ ] Receipt storage & history
 - [ ] Mobile app
 
 ---
 
 ## 📄 License
 
-MIT License - feel free to use for learning and projects!
+MIT License - Copyright (c) 2026 Harieshwar Jagan Abirami
+
+---
+
+## 👤 Author
+
+**Harieshwar Jagan Abirami**
+- Email: [harieshwarja.official@gmail.com](mailto:harieshwarja.official@gmail.com)
+- GitHub: [@HariEshwar-J-A](https://github.com/HariEshwar-J-A)
 
 ---
 
@@ -432,5 +448,9 @@ Having issues? Check:
 3. [OCR.space documentation](https://ocr.space/ocrapi)
 
 ---
+
+## 📚 Documentation
+
+- **[Streaming Export Implementation](./docs/streaming_plan.md)**: Architectural plan for implementing unlimited CSV/PDF exports.
 
 **Built with ❤️ using React, Node.js, and OCR.space**

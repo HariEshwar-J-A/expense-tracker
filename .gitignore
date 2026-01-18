@@ -37,4 +37,13 @@ Thumbs.db
 # Vite
 *.tsbuildinfo
 
+# Database
+server/data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploads
+server/uploads/
+
 # Optional: Ignore local credentials for specific tools if any

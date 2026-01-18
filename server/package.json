@@ -6,10 +6,15 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "jest"
+    "test": "jest",
+    "migrate:latest": "knex migrate:latest --knexfile database/knexfile.js",
+    "migrate:rollback": "knex migrate:rollback --knexfile database/knexfile.js",
+    "migrate:make": "knex migrate:make --knexfile database/knexfile.js -x js",
+    "seed": "knex seed:run --knexfile database/knexfile.js",
+    "db:reset": "npm run migrate:rollback && npm run migrate:latest && npm run seed"
   },
   "keywords": [],
-  "author": "",
+  "author": "Harieshwar Jagan Abirami <harieshwarja.official@gmail.com>",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
@@ -20,14 +25,19 @@
   "dependencies": {
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.6.2",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "form-data": "^4.0.5",
     "jsonwebtoken": "^9.0.3",
+    "knex": "^3.1.0",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
     "pdf-parse": "^1.1.1",
-    "pdfkit": "^0.17.2"
+    "pdfkit": "^0.17.2",
+    "pg": "^8.17.1",
+    "uuid": "^13.0.0"
   }
 }

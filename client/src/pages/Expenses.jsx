@@ -1,54 +1,87 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Button, Pagination, FormControl, InputLabel, Select, MenuItem, TextField, Collapse, TableSortLabel, InputAdornment } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon, FilterList as FilterListIcon } from '@mui/icons-material';
-import axios from 'axios';
-import ExpenseForm from '../components/ExpenseForm';
-import { format } from 'date-fns';
-import { formatDateForDisplay } from '../utils/dateHelpers';
+import React, { useState, useEffect } from "react";
+import {
+    Box,
+    Typography,
+    Paper,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    IconButton,
+    Button,
+    Pagination,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
+    TextField,
+    Collapse,
+    TableSortLabel,
+    InputAdornment,
+} from "@mui/material";
+import {
+    Edit as EditIcon,
+    Delete as DeleteIcon,
+    Add as AddIcon,
+    FilterList as FilterListIcon,
+} from "@mui/icons-material";
+import axios from "axios";
+import ExpenseForm from "../components/ExpenseForm";
+import { formatDateForDisplay } from "../utils/dateHelpers";
 
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from "../context/AuthContext";
 
 const Expenses = () => {
-    const { user } = useAuth();
     const [expenses, setExpenses] = useState([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
     // Filters & Sort State
-    const [filters, setFilters] = useState({ category: '', startDate: '', endDate: '', minAmount: '', maxAmount: '' });
-    const [sortConfig, setSortConfig] = useState({ sortBy: 'date', order: 'desc' });
+    const [filters, setFilters] = useState({
+        category: "",
+        startDate: "",
+        endDate: "",
+        minAmount: "",
+        maxAmount: "",
+    });
+    const [sortConfig, setSortConfig] = useState({
+        sortBy: "date",
+        order: "desc",
+    });
     const [showFilters, setShowFilters] = useState(false);
 
     const [openForm, setOpenForm] = useState(false);
     const [editingExpense, setEditingExpense] = useState(null);
 
-    const fetchExpenses = async () => {
+    const fetchExpenses = React.useCallback(async () => {
         try {
             const params = {
                 page,
                 limit: 10,
                 ...filters,
-                ...sortConfig
+                ...sortConfig,
             };
-            const res = await axios.get('/api/expenses', { params });
+            const res = await axios.get("/api/expenses", { params });
             setExpenses(res.data.data);
-            setTotalPages(res.data.meta.totalPages);
+            setTotalPages(res.data.pagination.pages); // Updated from meta.totalPages
         } catch (error) {
-            console.error('Failed to fetch expenses', error);
+            console.error("Failed to fetch expenses", error);
         }
-    };
+    }, [page, filters, sortConfig]);
 
     useEffect(() => {
         fetchExpenses();
-    }, [page, filters, sortConfig]);
+    }, [fetchExpenses]);
 
     const handleSort = (property) => {
-        const isAsc = sortConfig.sortBy === property && sortConfig.order === 'asc';
-        setSortConfig({ sortBy: property, order: isAsc ? 'desc' : 'asc' });
+        const isAsc = sortConfig.sortBy === property && sortConfig.order === "asc";
+        setSortConfig({ sortBy: property, order: isAsc ? "desc" : "asc" });
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Are you sure?')) {
+        if (window.confirm("Are you sure?")) {
             await axios.delete(`/api/expenses/${id}`);
             fetchExpenses();
         }
@@ -59,13 +92,13 @@ const Expenses = () => {
             if (editingExpense) {
                 await axios.put(`/api/expenses/${editingExpense.id}`, data);
             } else {
-                await axios.post('/api/expenses', data);
+                await axios.post("/api/expenses", data);
             }
             setOpenForm(false);
             setEditingExpense(null);
             fetchExpenses();
         } catch (error) {
-            console.error('Error saving expense', error);
+            console.error("Error saving expense", error);
         }
     };
 
@@ -75,61 +108,93 @@ const Expenses = () => {
     };
 
     const clearFilters = () => {
-        setFilters({ category: '', startDate: '', endDate: '', minAmount: '', maxAmount: '' });
+        setFilters({
+            category: "",
+            startDate: "",
+            endDate: "",
+            minAmount: "",
+            maxAmount: "",
+        });
     };
 
     const handleExportPDF = async () => {
         try {
-            const token = localStorage.getItem('token');
             const params = {
                 ...filters,
                 ...sortConfig,
-                limit: 10000 // Get all records
+                limit: 100000,
             };
 
-            const response = await axios.get('/api/expenses/export', {
-                headers: { Authorization: `Bearer ${token}` },
+            const response = await axios.get("/api/expenses/export", {
                 params,
-                responseType: 'blob',
+                responseType: "blob",
             });
 
-            const blob = new Blob([response.data], { type: 'application/pdf' });
+            // Explicitly define the PDF type so the browser recognizes it
+            const blob = new Blob([response.data], { type: "application/pdf" });
             const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
+            const link = document.createElement("a");
             link.href = url;
 
-            // Generate filename locally to ensure device's local time is used
-            const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm-ss');
-            const username = user?.username || 'User';
-            let filename = `${username}_Expenses_${timestamp}`;
-            if (filters.category) filename += `_${filters.category}`;
-            filename += '.pdf';
+            const contentDisposition = response.headers["content-disposition"];
+            let filename = `Expenses_${new Date().toISOString().split("T")[0]}.pdf`;
+            if (contentDisposition) {
+                // Robust regex for both quoted and unquoted filenames
+                const filenameMatch = contentDisposition.match(/filename="?([^";]+)"?/);
+                if (filenameMatch && filenameMatch.length === 2) {
+                    filename = filenameMatch[1];
+                }
+            }
 
-            link.setAttribute('download', filename);
+
+
+            link.setAttribute("download", filename);
             document.body.appendChild(link);
             link.click();
             link.parentNode.removeChild(link);
 
-            // Delay revocation to ensure download starts
+            // IMPORTANT: Browsers need a small delay before the URL is revoked
+            // otherwise the download might fail or lose the filename
             setTimeout(() => window.URL.revokeObjectURL(url), 100);
         } catch (error) {
-            console.error('Export failed', error);
-            alert('Failed to export PDF');
+            console.error("Export failed", error);
+            alert("Failed to export PDF");
         }
     };
 
     return (
         <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h4" fontWeight="bold">Expenses</Typography>
-                <Box>
-                    <IconButton onClick={() => setShowFilters(!showFilters)} color={showFilters ? 'primary' : 'default'}>
+            <Box
+                sx={{
+                    display: "flex",
+                    flexDirection: { xs: "column", sm: "row" }, // Stack on mobile
+                    justifyContent: "space-between",
+                    alignItems: { xs: "stretch", sm: "center" }, // Stretch buttons on mobile
+                    gap: 2,
+                    mb: 3,
+                }}
+            >
+                <Typography variant="h4" fontWeight="bold">
+                    Expenses
+                </Typography>
+                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                    <IconButton
+                        onClick={() => setShowFilters(!showFilters)}
+                        color={showFilters ? "primary" : "default"}
+                    >
                         <FilterListIcon />
                     </IconButton>
-                    <Button variant="outlined" onClick={handleExportPDF} sx={{ ml: 2 }}>
+                    <Button variant="outlined" onClick={handleExportPDF}>
                         Export PDF
                     </Button>
-                    <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditingExpense(null); setOpenForm(true); }} sx={{ ml: 2 }}>
+                    <Button
+                        variant="contained"
+                        startIcon={<AddIcon />}
+                        onClick={() => {
+                            setEditingExpense(null);
+                            setOpenForm(true);
+                        }}
+                    >
                         Add Expense
                     </Button>
                 </Box>
@@ -137,17 +202,35 @@ const Expenses = () => {
 
             <Collapse in={showFilters}>
                 <Paper sx={{ p: 2, mb: 3 }}>
-                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            gap: 2,
+                            flexWrap: "wrap",
+                            alignItems: "center",
+                        }}
+                    >
                         <FormControl size="small" sx={{ minWidth: 120 }}>
                             <InputLabel>Category</InputLabel>
                             <Select
                                 value={filters.category}
                                 label="Category"
-                                onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+                                onChange={(e) =>
+                                    setFilters({ ...filters, category: e.target.value })
+                                }
                             >
                                 <MenuItem value="">All</MenuItem>
-                                {['Food', 'Transport', 'Utilities', 'Entertainment', 'Health', 'Other'].map(c => (
-                                    <MenuItem key={c} value={c}>{c}</MenuItem>
+                                {[
+                                    "Food",
+                                    "Transport",
+                                    "Utilities",
+                                    "Entertainment",
+                                    "Health",
+                                    "Other",
+                                ].map((c) => (
+                                    <MenuItem key={c} value={c}>
+                                        {c}
+                                    </MenuItem>
                                 ))}
                             </Select>
                         </FormControl>
@@ -155,26 +238,38 @@ const Expenses = () => {
                             label="Start Date"
                             type="date"
                             size="small"
-                            InputLabelProps={{ shrink: true }}
+                            slotProps={{ inputLabel: { shrink: true } }}
                             value={filters.startDate}
-                            onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                            onChange={(e) =>
+                                setFilters({ ...filters, startDate: e.target.value })
+                            }
                         />
                         <TextField
                             label="End Date"
                             type="date"
                             size="small"
-                            InputLabelProps={{ shrink: true }}
+                            slotProps={{ inputLabel: { shrink: true } }}
                             value={filters.endDate}
-                            onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                            onChange={(e) =>
+                                setFilters({ ...filters, endDate: e.target.value })
+                            }
                         />
                         <TextField
                             label="Min Amount"
                             type="number"
                             size="small"
                             placeholder="0"
-                            InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
+                            slotProps={{
+                                input: {
+                                    startAdornment: (
+                                        <InputAdornment position="start">$</InputAdornment>
+                                    ),
+                                },
+                            }}
                             value={filters.minAmount}
-                            onChange={(e) => setFilters({ ...filters, minAmount: e.target.value })}
+                            onChange={(e) =>
+                                setFilters({ ...filters, minAmount: e.target.value })
+                            }
                             sx={{ width: 120 }}
                         />
                         <TextField
@@ -182,9 +277,17 @@ const Expenses = () => {
                             type="number"
                             size="small"
                             placeholder="Max"
-                            InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
+                            slotProps={{
+                                input: {
+                                    startAdornment: (
+                                        <InputAdornment position="start">$</InputAdornment>
+                                    ),
+                                },
+                            }}
                             value={filters.maxAmount}
-                            onChange={(e) => setFilters({ ...filters, maxAmount: e.target.value })}
+                            onChange={(e) =>
+                                setFilters({ ...filters, maxAmount: e.target.value })
+                            }
                             sx={{ width: 120 }}
                         />
                         <Button variant="text" onClick={clearFilters}>
@@ -194,42 +297,50 @@ const Expenses = () => {
                 </Paper>
             </Collapse>
 
-            <TableContainer component={Paper}>
+            <TableContainer component={Paper} sx={{ overflowX: "auto" }}>
                 <Table>
                     <TableHead>
                         <TableRow>
                             <TableCell>
                                 <TableSortLabel
-                                    active={sortConfig.sortBy === 'date'}
-                                    direction={sortConfig.sortBy === 'date' ? sortConfig.order : 'asc'}
-                                    onClick={() => handleSort('date')}
+                                    active={sortConfig.sortBy === "date"}
+                                    direction={
+                                        sortConfig.sortBy === "date" ? sortConfig.order : "asc"
+                                    }
+                                    onClick={() => handleSort("date")}
                                 >
                                     Date
                                 </TableSortLabel>
                             </TableCell>
                             <TableCell>
                                 <TableSortLabel
-                                    active={sortConfig.sortBy === 'vendor'}
-                                    direction={sortConfig.sortBy === 'vendor' ? sortConfig.order : 'asc'}
-                                    onClick={() => handleSort('vendor')}
+                                    active={sortConfig.sortBy === "vendor"}
+                                    direction={
+                                        sortConfig.sortBy === "vendor" ? sortConfig.order : "asc"
+                                    }
+                                    onClick={() => handleSort("vendor")}
                                 >
                                     Vendor
                                 </TableSortLabel>
                             </TableCell>
                             <TableCell>
                                 <TableSortLabel
-                                    active={sortConfig.sortBy === 'category'}
-                                    direction={sortConfig.sortBy === 'category' ? sortConfig.order : 'asc'}
-                                    onClick={() => handleSort('category')}
+                                    active={sortConfig.sortBy === "category"}
+                                    direction={
+                                        sortConfig.sortBy === "category" ? sortConfig.order : "asc"
+                                    }
+                                    onClick={() => handleSort("category")}
                                 >
                                     Category
                                 </TableSortLabel>
                             </TableCell>
                             <TableCell align="right">
                                 <TableSortLabel
-                                    active={sortConfig.sortBy === 'amount'}
-                                    direction={sortConfig.sortBy === 'amount' ? sortConfig.order : 'asc'}
-                                    onClick={() => handleSort('amount')}
+                                    active={sortConfig.sortBy === "amount"}
+                                    direction={
+                                        sortConfig.sortBy === "amount" ? sortConfig.order : "asc"
+                                    }
+                                    onClick={() => handleSort("amount")}
                                 >
                                     Amount (CAD)
                                 </TableSortLabel>
@@ -240,27 +351,34 @@ const Expenses = () => {
                     <TableBody>
                         {expenses.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={5} align="center">No expenses found</TableCell>
+                                <TableCell colSpan={5} align="center">
+                                    No expenses found
+                                </TableCell>
                             </TableRow>
                         ) : (
                             expenses.map((expense) => (
                                 <TableRow key={expense.id} hover>
-                                    <TableCell>
-                                        {(() => {
-                                            const dateStr = expense.date;
-                                            // Fix timezone offset issue for YYYY-MM-DD strings by parsing as local time
-                                            const dateObj = dateStr.includes('T')
-                                                ? new Date(dateStr)
-                                                : new Date(dateStr + 'T00:00:00');
-                                            return format(dateObj, 'MMM dd, yyyy');
-                                        })()}
-                                    </TableCell>
+                                    <TableCell>{formatDateForDisplay(expense.date)}</TableCell>
                                     <TableCell>{expense.vendor}</TableCell>
                                     <TableCell>{expense.category}</TableCell>
-                                    <TableCell align="right">${Number(expense.amount).toFixed(2)}</TableCell>
                                     <TableCell align="right">
-                                        <IconButton size="small" onClick={() => openEdit(expense)} color="primary"><EditIcon /></IconButton>
-                                        <IconButton size="small" onClick={() => handleDelete(expense.id)} color="error"><DeleteIcon /></IconButton>
+                                        ${Number(expense.amount).toFixed(2)}
+                                    </TableCell>
+                                    <TableCell align="right">
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => openEdit(expense)}
+                                            color="primary"
+                                        >
+                                            <EditIcon />
+                                        </IconButton>
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => handleDelete(expense.id)}
+                                            color="error"
+                                        >
+                                            <DeleteIcon />
+                                        </IconButton>
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -269,8 +387,13 @@ const Expenses = () => {
                 </Table>
             </TableContainer>
 
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-                <Pagination count={totalPages} page={page} onChange={(e, p) => setPage(p)} color="primary" />
+            <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+                <Pagination
+                    count={totalPages}
+                    page={page}
+                    onChange={(e, p) => setPage(p)}
+                    color="primary"
+                />
             </Box>
 
             <ExpenseForm
