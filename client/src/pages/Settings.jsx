@@ -37,7 +37,7 @@ const Settings = () => {
         <Divider sx={{ mb: 3 }} />
 
         <Grid container spacing={4} alignItems="center">
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <Typography variant="subtitle1" fontWeight="medium">
               Theme Mode
             </Typography>
@@ -45,7 +45,7 @@ const Settings = () => {
               Switch between light and dark backgrounds.
             </Typography>
           </Grid>
-          <Grid item xs={12} sm={8}>
+          <Grid size={{ xs: 12, sm: 8 }}>
             <Button
               variant="outlined"
               startIcon={
@@ -58,7 +58,7 @@ const Settings = () => {
             </Button>
           </Grid>
 
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <Typography variant="subtitle1" fontWeight="medium">
               Accent Color
             </Typography>
@@ -66,7 +66,7 @@ const Settings = () => {
               Choose your personalized dashboard color.
             </Typography>
           </Grid>
-          <Grid item xs={12} sm={8}>
+          <Grid size={{ xs: 12, sm: 8 }}>
             <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
               {COLORS.map((color) => (
                 <IconButton
