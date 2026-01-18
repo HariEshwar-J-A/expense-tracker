@@ -4,8 +4,12 @@ import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon, FilterList as F
 import axios from 'axios';
 import ExpenseForm from '../components/ExpenseForm';
 import { format } from 'date-fns';
+import { formatDateForDisplay } from '../utils/dateHelpers';
+
+import { useAuth } from '../context/AuthContext';
 
 const Expenses = () => {
+    const { user } = useAuth();
     const [expenses, setExpenses] = useState([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -74,6 +78,46 @@ const Expenses = () => {
         setFilters({ category: '', startDate: '', endDate: '', minAmount: '', maxAmount: '' });
     };
 
+    const handleExportPDF = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const params = {
+                ...filters,
+                ...sortConfig,
+                limit: 10000 // Get all records
+            };
+
+            const response = await axios.get('/api/expenses/export', {
+                headers: { Authorization: `Bearer ${token}` },
+                params,
+                responseType: 'blob',
+            });
+
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+
+            // Generate filename locally to ensure device's local time is used
+            const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm-ss');
+            const username = user?.username || 'User';
+            let filename = `${username}_Expenses_${timestamp}`;
+            if (filters.category) filename += `_${filters.category}`;
+            filename += '.pdf';
+
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+
+            // Delay revocation to ensure download starts
+            setTimeout(() => window.URL.revokeObjectURL(url), 100);
+        } catch (error) {
+            console.error('Export failed', error);
+            alert('Failed to export PDF');
+        }
+    };
+
     return (
         <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -82,6 +126,9 @@ const Expenses = () => {
                     <IconButton onClick={() => setShowFilters(!showFilters)} color={showFilters ? 'primary' : 'default'}>
                         <FilterListIcon />
                     </IconButton>
+                    <Button variant="outlined" onClick={handleExportPDF} sx={{ ml: 2 }}>
+                        Export PDF
+                    </Button>
                     <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditingExpense(null); setOpenForm(true); }} sx={{ ml: 2 }}>
                         Add Expense
                     </Button>
