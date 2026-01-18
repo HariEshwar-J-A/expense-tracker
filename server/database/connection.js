@@ -1,5 +1,5 @@
-const SQLiteAdapter = require('./adapters/SQLiteAdapter');
-const PostgresAdapter = require('./adapters/PostgresAdapter');
+const SQLiteAdapter = require("./adapters/SQLiteAdapter");
+const PostgresAdapter = require("./adapters/PostgresAdapter");
 
 let adapterInstance = null;
 
@@ -9,30 +9,32 @@ let adapterInstance = null;
  * @returns {BaseAdapter} Database adapter instance
  */
 function getAdapter() {
-    if (adapterInstance) {
-        return adapterInstance;
-    }
-
-    const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
-
-    console.log(`🔌 Initializing ${dbType.toUpperCase()} adapter...`);
-
-    switch (dbType) {
-        case 'sqlite':
-            adapterInstance = new SQLiteAdapter();
-            break;
-
-        case 'postgres':
-        case 'postgresql':
-            adapterInstance = new PostgresAdapter();
-            break;
-
-        default:
-            console.warn(`⚠️  Unknown database type: ${dbType}. Defaulting to SQLite.`);
-            adapterInstance = new SQLiteAdapter();
-    }
-
+  if (adapterInstance) {
     return adapterInstance;
+  }
+
+  const dbType = (process.env.DB_TYPE || "sqlite").toLowerCase();
+
+
+
+  switch (dbType) {
+    case "sqlite":
+      adapterInstance = new SQLiteAdapter();
+      break;
+
+    case "postgres":
+    case "postgresql":
+      adapterInstance = new PostgresAdapter();
+      break;
+
+    default:
+      console.warn(
+        `⚠️  Unknown database type: ${dbType}. Defaulting to SQLite.`,
+      );
+      adapterInstance = new SQLiteAdapter();
+  }
+
+  return adapterInstance;
 }
 
 /**
@@ -40,13 +42,13 @@ function getAdapter() {
  * @returns {Promise<BaseAdapter>} Connected adapter instance
  */
 async function initializeDatabase() {
-    const adapter = getAdapter();
+  const adapter = getAdapter();
 
-    if (!adapter.connected) {
-        await adapter.connect();
-    }
+  if (!adapter.connected) {
+    await adapter.connect();
+  }
 
-    return adapter;
+  return adapter;
 }
 
 /**
@@ -54,10 +56,10 @@ async function initializeDatabase() {
  * @returns {Promise<void>}
  */
 async function closeDatabase() {
-    if (adapterInstance && adapterInstance.connected) {
-        await adapterInstance.disconnect();
-        adapterInstance = null;
-    }
+  if (adapterInstance && adapterInstance.connected) {
+    await adapterInstance.disconnect();
+    adapterInstance = null;
+  }
 }
 
 /**
@@ -66,13 +68,13 @@ async function closeDatabase() {
  * @returns {Knex} Knex instance
  */
 function getKnex() {
-    const adapter = getAdapter();
-    return adapter.getConnection();
+  const adapter = getAdapter();
+  return adapter.getConnection();
 }
 
 module.exports = {
-    getAdapter,
-    initializeDatabase,
-    closeDatabase,
-    getKnex
+  getAdapter,
+  initializeDatabase,
+  closeDatabase,
+  getKnex,
 };
