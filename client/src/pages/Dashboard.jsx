@@ -28,7 +28,9 @@ const Dashboard = () => {
                         topCategory: backendStats.byCategory.length > 0
                             ? { name: backendStats.byCategory[0].category, amount: parseFloat(backendStats.byCategory[0].total) }
                             : { name: 'N/A', amount: 0 },
-                        topVendor: { name: 'N/A', amount: 0 } // Not provided by backend yet
+                        topVendor: backendStats.topVendor
+                            ? { name: backendStats.topVendor.vendor, amount: parseFloat(backendStats.topVendor.total) }
+                            : { name: 'N/A', amount: 0 }
                     },
                     // Convert byCategory array to object for D3
                     categoryStats: backendStats.byCategory.reduce((acc, cat) => {

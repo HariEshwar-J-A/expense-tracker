@@ -208,6 +208,25 @@ class Expense {
             .groupBy('month')
             .orderBy('month', 'asc');
 
+        // Top vendor (by total spending)
+        const topVendorResult = await db('expenses')
+            .where({ user_id: userId })
+            .select('vendor')
+            .sum('amount as total')
+            .groupBy('vendor')
+            .orderBy('total', 'desc')
+            .limit(1);
+
+        const topVendor = topVendorResult.length > 0
+            ? {
+                vendor: topVendorResult[0].vendor,
+                total: parseFloat(topVendorResult[0].total).toFixed(2)
+            }
+            : {
+                vendor: 'N/A',
+                total: '0.00'
+            };
+
         return {
             total: {
                 amount: parseFloat(totalResult.total || 0).toFixed(2),
@@ -226,7 +245,8 @@ class Expense {
                 month: month.month,
                 total: parseFloat(month.total).toFixed(2),
                 count: parseInt(month.count)
-            }))
+            })),
+            topVendor: topVendor
         };
     }
 
