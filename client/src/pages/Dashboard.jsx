@@ -16,7 +16,33 @@ const Dashboard = () => {
         const fetchStats = async () => {
             try {
                 const res = await axios.get('/api/expenses/stats');
-                setStats(res.data);
+                const backendStats = res.data;
+
+                // Transform backend stats format to match frontend expectations
+                const transformedStats = {
+                    kpis: {
+                        totalSpend: parseFloat(backendStats.total.amount),
+                        avgTransaction: backendStats.total.count > 0
+                            ? parseFloat(backendStats.total.amount) / backendStats.total.count
+                            : 0,
+                        topCategory: backendStats.byCategory.length > 0
+                            ? { name: backendStats.byCategory[0].category, amount: parseFloat(backendStats.byCategory[0].total) }
+                            : { name: 'N/A', amount: 0 },
+                        topVendor: { name: 'N/A', amount: 0 } // Not provided by backend yet
+                    },
+                    // Convert byCategory array to object for D3
+                    categoryStats: backendStats.byCategory.reduce((acc, cat) => {
+                        acc[cat.category] = parseFloat(cat.total);
+                        return acc;
+                    }, {}),
+                    // Use monthlyTrend data (backend returns last 6 months)
+                    dailyStats: backendStats.monthlyTrend.reduce((acc, month) => {
+                        acc[month.month] = parseFloat(month.total);
+                        return acc;
+                    }, {})
+                };
+
+                setStats(transformedStats);
             } catch (error) {
                 console.error('Error fetching stats', error);
             }
@@ -84,9 +110,10 @@ const Dashboard = () => {
         svg.selectAll('*').remove();
 
         const dataArray = Object.entries(data)
-            .map(([date, amount]) => ({ date: new Date(date), amount }))
-            .sort((a, b) => a.date - b.date)
-            .slice(-7);
+            .map(([date, amount]) => ({ date, amount }))
+            .sort((a, b) => a.date.localeCompare(b.date));
+
+        if (dataArray.length === 0) return;
 
         const margin = { top: 20, right: 30, bottom: 40, left: 40 };
         const width = 500 - margin.left - margin.right;
@@ -99,7 +126,7 @@ const Dashboard = () => {
 
         const x = d3.scaleBand()
             .range([0, width])
-            .domain(dataArray.map(d => d.date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })))
+            .domain(dataArray.map(d => d.date))
             .padding(0.2);
 
         g.append('g')
@@ -121,7 +148,7 @@ const Dashboard = () => {
             .data(dataArray)
             .enter()
             .append('rect')
-            .attr('x', d => x(d.date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })))
+            .attr('x', d => x(d.date))
             .attr('y', d => y(d.amount))
             .attr('width', x.bandwidth())
             .attr('height', d => height - y(d.amount))
@@ -192,7 +219,7 @@ const Dashboard = () => {
                 </Grid>
                 <Grid item xs={12} md={6}>
                     <Paper sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: 400 }}>
-                        <Typography variant="h6" gutterBottom>Daily Trends (Last 7 Days)</Typography>
+                        <Typography variant="h6" gutterBottom>Monthly Trends (Last 6 Months)</Typography>
                         <svg ref={barRef} style={{ width: '100%', height: 'auto' }}></svg>
                     </Paper>
                 </Grid>
