@@ -123,7 +123,7 @@ const Expenses = () => {
             const params = {
                 ...filters,
                 ...sortConfig,
-                limit: 10000, // Get all records
+                limit: 100000, // Get up to 100k records
             };
 
             const response = await axios.get("/api/expenses/export", {
