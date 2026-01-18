@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
-const { Expense } = require('../database/models');
+const { Expense, User } = require('../database/models');
 const multer = require('multer');
 const { parseReceipt } = require('../utils/receiptParser');
 
@@ -77,6 +77,55 @@ router.get('/', auth, async (req, res) => {
     } catch (error) {
         console.error('Get expenses error:', error);
         res.status(500).json({ message: 'Error fetching expenses' });
+    }
+});
+
+const { generateExpenseReport } = require('../utils/pdfGenerator');
+
+/**
+ * GET /api/expenses/export
+ * Export expenses as PDF
+ */
+router.get('/export', auth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const userEmail = req.user.email || 'User';
+        const user = { username: userEmail.split('@')[0], email: userEmail };
+
+        const {
+            category,
+            startDate,
+            endDate,
+            minAmount,
+            maxAmount,
+            sortBy,
+            order,
+            limit
+        } = req.query;
+
+        // Fetch expenses with filters
+        const result = await Expense.findByUserId(userId, {
+            category,
+            startDate,
+            endDate,
+            minAmount,
+            maxAmount,
+            sortBy: sortBy || 'date',
+            order: order || 'desc',
+            page: 1,
+            limit: parseInt(limit) || 10000 // Get all for export
+        });
+
+        const expenses = result.data;
+
+        // Use the utility function to generate and pipe the PDF
+        generateExpenseReport(expenses, req.query, user, res);
+
+    } catch (error) {
+        console.error('Export error:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ message: 'Error exporting expenses' });
+        }
     }
 });
 

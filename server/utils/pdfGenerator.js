@@ -1,109 +1,245 @@
 const PDFDocument = require('pdfkit');
 
 const generateExpenseReport = (expenses, filters, user, res) => {
-    const doc = new PDFDocument({ margin: 50 });
+    // 1. Calculate Statistics
+    const totalAmount = expenses.reduce((sum, item) => sum + Number(item.amount), 0);
+    const count = expenses.length;
+    const averageAmount = count > 0 ? totalAmount / count : 0;
+    const amounts = expenses.map(e => Number(e.amount));
+    const maxAmount = count > 0 ? Math.max(...amounts) : 0;
+    const minAmount = count > 0 ? Math.min(...amounts) : 0;
 
-    const filename = `${user.username}_Expenses_${new Date().toISOString().split('T')[0]}.pdf`;
+    // Category Breakdown
+    const categoryStats = expenses.reduce((acc, item) => {
+        const cat = item.category || 'Uncategorized';
+        if (!acc[cat]) acc[cat] = { count: 0, total: 0 };
+        acc[cat].count++;
+        acc[cat].total += Number(item.amount);
+        return acc;
+    }, {});
 
+    // 2. Setup Document - bufferPages: true is CRITICAL for accurate "Page X of Y" footers
+    const doc = new PDFDocument({ margin: 50, size: 'LETTER', bufferPages: true });
+
+    // Robust Timestamp for Filename (YYYY-MM-DD_HH-mm-ss)
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/T/, '_').replace(/\..+/, '').replace(/:/g, '-');
+    const safeUsername = (user.username || user.email.split('@')[0]).replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `${safeUsername}_Expenses_${timestamp}.pdf`;
+
+    // Set Headers
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
     doc.pipe(res);
 
-    // Header
+    // --- REPORT HEADER ---
     doc.fillColor('#444444')
-        .fontSize(20)
-        .text('Expense Report', 50, 57)
-        .fontSize(10)
-        .text(`Report For: ${user.username}`, 200, 65, { align: 'right' })
-        .text(`Generated: ${new Date().toLocaleDateString()}`, 200, 80, { align: 'right' })
-        .moveDown();
-
-    // Context Info
-    doc.fontSize(12).text('Report Details', 50, 105);
-
-    // Date Range
-    let dateRangeText = 'All Time';
-    if (filters.startDate && filters.endDate) dateRangeText = `${filters.startDate} to ${filters.endDate}`;
-    else if (filters.startDate) dateRangeText = `From ${filters.startDate}`;
-    else if (filters.endDate) dateRangeText = `Until ${filters.endDate}`;
+        .fontSize(24)
+        .font('Helvetica-Bold')
+        .text('Expense Report', 50, 50);
 
     doc.fontSize(10)
-        .font('Helvetica-Bold').text('Date Range:', 50, 125)
-        .font('Helvetica').text(dateRangeText, 120, 125);
+        .font('Helvetica')
+        .text('Generated for:', 50, 80)
+        .font('Helvetica-Bold')
+        .text(user.email, 120, 80);
 
-    // Filters
-    doc.font('Helvetica-Bold').text('Filters:', 50, 140);
-    doc.font('Helvetica');
+    doc.font('Helvetica')
+        .text('Generated on:', 50, 95)
+        .text(now.toLocaleString(), 120, 95);
 
-    let filterText = [];
-    if (filters.category) filterText.push(`Category: ${filters.category}`);
-    if (filters.minAmount) filterText.push(`Min Amount: $${filters.minAmount}`);
-    if (filters.maxAmount) filterText.push(`Max Amount: $${filters.maxAmount}`);
+    // Filter Info (Right Aligned)
+    doc.fontSize(10).font('Helvetica');
+    let filterY = 50;
+    const rightColX = 350;
 
-    if (filterText.length === 0) {
-        doc.text('None', 120, 140);
+    doc.text('Report Parameters:', rightColX, filterY);
+    filterY += 15;
+
+    if (filters.category || filters.startDate || filters.endDate) {
+        if (filters.startDate) {
+            doc.text(`Start Date: ${filters.startDate}`, rightColX, filterY);
+            filterY += 15;
+        }
+        if (filters.endDate) {
+            doc.text(`End Date: ${filters.endDate}`, rightColX, filterY);
+            filterY += 15;
+        }
+        if (filters.category) {
+            doc.text(`Category: ${filters.category}`, rightColX, filterY);
+            filterY += 15;
+        }
     } else {
-        doc.text(filterText.join(', '), 120, 140);
+        doc.text('All Records', rightColX, filterY);
     }
 
-    // Table Header
-    const tableTop = 170;
-    doc.font('Helvetica-Bold');
-    generateTableRow(doc, tableTop, 'Date', 'Vendor', 'Category', 'Amount');
+    doc.moveDown(4); // Increased from 2 to 4 to push separator down
+    generateHr(doc, doc.y);
+    doc.moveDown();
+
+    // --- EXECUTIVE SUMMARY ---
+    const summaryTop = doc.y;
+    doc.fontSize(14).font('Helvetica-Bold').text('Executive Summary', 50, summaryTop);
+    doc.moveDown(0.5);
+
+    // Summary Box
+    const boxTop = doc.y;
+    doc.rect(50, boxTop, 510, 60).fillAndStroke('#f5f5f5', '#e0e0e0');
+    doc.fillColor('#444444');
+
+    // Column 1: Total
+    drawSummaryMetric(doc, 'Total Expenses', `$${totalAmount.toFixed(2)}`, 70, boxTop + 15);
+    // Column 2: Transactions
+    drawSummaryMetric(doc, 'Transactions', count.toString(), 200, boxTop + 15);
+    // Column 3: Average
+    drawSummaryMetric(doc, 'Average', `$${averageAmount.toFixed(2)}`, 330, boxTop + 15);
+    // Column 4: Max
+    drawSummaryMetric(doc, 'Largest', `$${maxAmount.toFixed(2)}`, 460, boxTop + 15);
+
+    doc.moveDown(5); // Move past the box
+
+    // --- CATEGORY BREAKDOWN ---
+    if (Object.keys(categoryStats).length > 0) {
+        // Check space for Title
+        if (doc.y > 650) doc.addPage();
+
+        doc.fontSize(14).font('Helvetica-Bold').text('Category Breakdown', 50, doc.y);
+        doc.moveDown(0.5);
+
+        let catY = doc.y;
+        doc.fontSize(10).font('Helvetica');
+
+        // Simple visual bars
+        const maxCatTotal = Math.max(...Object.values(categoryStats).map(c => c.total));
+
+        Object.entries(categoryStats)
+            .sort((a, b) => b[1].total - a[1].total)
+            .forEach(([cat, stats]) => {
+                // Check page break - safer threshold
+                if (catY > 600) {
+                    doc.addPage();
+                    catY = 50;
+                }
+
+                // Label
+                doc.text(cat, 50, catY, { width: 100 });
+
+                // Bar
+                const barWidth = maxCatTotal > 0 ? (stats.total / maxCatTotal) * 250 : 0;
+                doc.rect(160, catY - 2, barWidth, 10).fill('#3f51b5');
+                doc.fillColor('#444444');
+
+                // Value
+                doc.text(`$${stats.total.toFixed(2)}`, 430, catY, { width: 80, align: 'right' });
+                doc.text(`(${stats.count})`, 520, catY, { align: 'right' });
+
+                catY += 20;
+            });
+
+        doc.y = catY + 20; // Update doc.y explicitly
+    }
+
+    doc.moveDown();
+
+
+    // --- DETAILED TRANSACTIONS TABLE ---
+    // Check if we have enough space for the header (needs ~50pts)
+    if (doc.y > 600) {
+        doc.addPage();
+    }
+
+    doc.fontSize(14).font('Helvetica-Bold').text('Detailed Transactions', 50, doc.y);
+    doc.moveDown(0.5);
+
+    const tableTop = doc.y; // Start table here
+    let position = tableTop;
+
+    // Draw Table Header
+    drawTableHeader(doc, position);
+    position += 30;
+
     doc.font('Helvetica');
-    generateHr(doc, tableTop + 20);
 
-    // Table Body
-    let i = 0;
-    let position = 0;
-    let totalAmount = 0;
-
-    expenses.forEach(item => {
-        position = tableTop + (i + 1) * 30;
-        // Check page break
-        if (position > 700) {
+    // Draw Table Rows
+    expenses.forEach((item, i) => {
+        // Check Page Break - reduced to 600 for max safety vs footer at 750
+        if (position > 600) {
             doc.addPage();
-            // Reset position for new page
             position = 50;
-            i = 0;
-            // Re-draw header? For simplicity, we just continue list.
+            drawTableHeader(doc, position);
+            position += 30;
+        }
+
+        // Zebra Striping
+        if (i % 2 === 0) {
+            doc.rect(50, position - 5, 510, 20).fill('#f9f9f9');
+            doc.fillColor('#444444'); // Reset text color after fill
         }
 
         generateTableRow(
             doc,
             position,
-            item.date.split('T')[0], // items.date is ISO striing
+            item.date.split('T')[0],
             item.vendor,
             item.category,
             `$${Number(item.amount).toFixed(2)}`
         );
-        generateHr(doc, position + 20);
-        totalAmount += Number(item.amount);
-        i++;
+
+        position += 20;
     });
 
-    // Total
-    const finalPosition = position + 40;
-    doc.font('Helvetica-Bold')
-        .text(`Total Spending: $${totalAmount.toFixed(2)}`, 350, finalPosition, { width: 100, align: 'right' });
+    // Draw Footer Line
+    generateHr(doc, position + 5);
+
+    // --- PAGE NUMBERS ---
+    // Since bufferPages: true, range.count is the TOTAL pages. range.start should be 0.
+    const range = doc.bufferedPageRange();
+
+    // Use range.start + range.count to cover all pages correctly
+    for (let i = range.start; i < (range.start + range.count); i++) {
+        doc.switchToPage(i);
+        // Writing at 750 (inside margin) triggers auto-add-page! 
+        // Move to 720 to be safely inside the printable body area (bottom limit ~742)
+        doc.fontSize(8).fillColor('#aaaaaa')
+            .text(`Page ${i + 1} of ${range.count}`, 50, 720, { align: 'center', width: 500 });
+    }
 
     doc.end();
 };
 
+// --- HELPER FUNCTIONS ---
+
+function drawSummaryMetric(doc, label, value, x, y) {
+    doc.fontSize(10).font('Helvetica').fillColor('#666666').text(label, x, y);
+    doc.fontSize(12).font('Helvetica-Bold').fillColor('#333333').text(value, x, y + 15);
+}
+
+function drawTableHeader(doc, y) {
+    doc.rect(50, y - 5, 510, 25).fill('#3f51b5'); // Header Background
+    doc.fillColor('#ffffff').fontSize(10).font('Helvetica-Bold');
+
+    doc.text('Date', 60, y);
+    doc.text('Vendor', 160, y);
+    doc.text('Category', 300, y);
+    doc.text('Amount', 450, y, { width: 100, align: 'right' });
+
+    doc.fillColor('#444444'); // Reset for next content
+}
+
 function generateTableRow(doc, y, date, vendor, category, amount) {
     doc.fontSize(10)
-        .text(date, 50, y)
-        .text(vendor, 150, y, { width: 100, align: 'left' })
-        .text(category, 280, y, { width: 100, align: 'left' })
-        .text(amount, 370, y, { width: 100, align: 'right' });
+        .text(date, 60, y)
+        .text(vendor, 160, y, { width: 130, ellipsis: true })
+        .text(category, 300, y, { width: 140, ellipsis: true })
+        .text(amount, 450, y, { width: 100, align: 'right' });
 }
 
 function generateHr(doc, y) {
     doc.strokeColor('#aaaaaa')
         .lineWidth(1)
         .moveTo(50, y)
-        .lineTo(550, y)
+        .lineTo(560, y)
         .stroke();
 }
 

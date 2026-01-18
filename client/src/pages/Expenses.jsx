@@ -93,25 +93,35 @@ const Expenses = () => {
                 responseType: 'blob',
             });
 
+            // Debugging logs
+            console.log('Response Headers:', response.headers);
+            // Explicitly define the PDF type so the browser recognizes it
             const blob = new Blob([response.data], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
 
-            // Generate filename locally to ensure device's local time is used
-            const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm-ss');
-            const username = user?.username || 'User';
-            let filename = `${username}_Expenses_${timestamp}`;
-            if (filters.category) filename += `_${filters.category}`;
-            filename += '.pdf';
+            const contentDisposition = response.headers['content-disposition'];
+            let filename = `Expenses_${new Date().toISOString().split('T')[0]}.pdf`;
+            if (contentDisposition) {
+                // Robust regex for both quoted and unquoted filenames
+                const filenameMatch = contentDisposition.match(/filename="?([^";]+)"?/);
+                if (filenameMatch && filenameMatch.length === 2) {
+                    filename = filenameMatch[1];
+                }
+            }
+
+            console.log('Final Filename:', filename);
 
             link.setAttribute('download', filename);
             document.body.appendChild(link);
             link.click();
             link.parentNode.removeChild(link);
 
-            // Delay revocation to ensure download starts
+            // IMPORTANT: Browsers need a small delay before the URL is revoked
+            // otherwise the download might fail or lose the filename
             setTimeout(() => window.URL.revokeObjectURL(url), 100);
+
         } catch (error) {
             console.error('Export failed', error);
             alert('Failed to export PDF');
@@ -246,14 +256,7 @@ const Expenses = () => {
                             expenses.map((expense) => (
                                 <TableRow key={expense.id} hover>
                                     <TableCell>
-                                        {(() => {
-                                            const dateStr = expense.date;
-                                            // Fix timezone offset issue for YYYY-MM-DD strings by parsing as local time
-                                            const dateObj = dateStr.includes('T')
-                                                ? new Date(dateStr)
-                                                : new Date(dateStr + 'T00:00:00');
-                                            return format(dateObj, 'MMM dd, yyyy');
-                                        })()}
+                                        {formatDateForDisplay(expense.date)}
                                     </TableCell>
                                     <TableCell>{expense.vendor}</TableCell>
                                     <TableCell>{expense.category}</TableCell>
