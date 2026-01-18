@@ -32,7 +32,7 @@ const Expenses = () => {
             };
             const res = await axios.get('/api/expenses', { params });
             setExpenses(res.data.data);
-            setTotalPages(res.data.meta.totalPages);
+            setTotalPages(res.data.pagination.pages); // Updated from meta.totalPages
         } catch (error) {
             console.error('Failed to fetch expenses', error);
         }
