@@ -179,21 +179,21 @@ const Dashboard = () => {
 
             {/* KPI Cards */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <KPICard
                         title="Total Spending"
                         value={`$${stats?.kpis?.totalSpend?.toFixed(2) || '0.00'}`}
                         icon={<AttachMoney />}
                     />
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <KPICard
                         title="Avg Transaction"
                         value={`$${stats?.kpis?.avgTransaction?.toFixed(2) || '0.00'}`}
                         icon={<ShowChart />}
                     />
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <KPICard
                         title="Top Category"
                         value={stats?.kpis?.topCategory?.name || 'N/A'}
@@ -201,7 +201,7 @@ const Dashboard = () => {
                         icon={<Category />}
                     />
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <KPICard
                         title="Top Vendor"
                         value={stats?.kpis?.topVendor?.name || 'N/A'}
@@ -213,13 +213,13 @@ const Dashboard = () => {
 
             {/* Charts */}
             <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                     <Paper sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: 400 }}>
                         <Typography variant="h6" gutterBottom>Spending by Category</Typography>
                         <svg ref={pieRef}></svg>
                     </Paper>
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                     <Paper sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: 400 }}>
                         <Typography variant="h6" gutterBottom>Monthly Trends (Last 6 Months)</Typography>
                         <svg ref={barRef} style={{ width: '100%', height: 'auto' }}></svg>
