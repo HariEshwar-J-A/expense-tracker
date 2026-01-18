@@ -6,8 +6,10 @@ import { useNavigate } from 'react-router-dom';
 
 const LoginPage = () => {
     const [isLogin, setIsLogin] = useState(true);
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
     const [error, setError] = useState('');
     const { login } = useAuth();
     const navigate = useNavigate();
@@ -17,17 +19,15 @@ const LoginPage = () => {
         setError('');
         try {
             const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
-            const res = await axios.post(endpoint, { username, password });
+            const payload = isLogin
+                ? { email, password }
+                : { email, password, firstName, lastName };
 
-            if (isLogin) {
-                login(res.data.token);
-                navigate('/');
-            } else {
-                // Auto login after register
-                const loginRes = await axios.post('/api/auth/login', { username, password });
-                login(loginRes.data.token);
-                navigate('/');
-            }
+            const res = await axios.post(endpoint, payload);
+
+            // Backend returns {token, user} for both login and register
+            login(res.data.token, res.data.user);
+            navigate('/');
         } catch (err) {
             setError(err.response?.data?.message || 'An error occurred');
         }
@@ -73,19 +73,46 @@ const LoginPage = () => {
                         margin="normal"
                         required
                         fullWidth
-                        label="Username"
+                        label="Email Address"
+                        type="email"
+                        autoComplete="email"
                         autoFocus
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        placeholder="Enter your username"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Enter your email"
                         InputProps={{ sx: { borderRadius: 3 } }}
                     />
+
+                    {!isLogin && (
+                        <>
+                            <TextField
+                                margin="normal"
+                                fullWidth
+                                label="First Name"
+                                value={firstName}
+                                onChange={(e) => setFirstName(e.target.value)}
+                                placeholder="Enter your first name"
+                                InputProps={{ sx: { borderRadius: 3 } }}
+                            />
+                            <TextField
+                                margin="normal"
+                                fullWidth
+                                label="Last Name"
+                                value={lastName}
+                                onChange={(e) => setLastName(e.target.value)}
+                                placeholder="Enter your last name"
+                                InputProps={{ sx: { borderRadius: 3 } }}
+                            />
+                        </>
+                    )}
+
                     <TextField
                         margin="normal"
                         required
                         fullWidth
                         label="Password"
                         type="password"
+                        autoComplete="current-password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Enter your password"
