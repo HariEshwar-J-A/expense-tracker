@@ -112,6 +112,24 @@ const Layout = ({ children }) => {
       <Container maxWidth="lg" sx={{ flexGrow: 1, py: 4 }}>
         {children}
       </Container>
+      <Box
+        component="footer"
+        sx={{
+          py: 3,
+          px: 2,
+          mt: "auto",
+          backgroundColor: (theme) =>
+            theme.palette.mode === "light"
+              ? theme.palette.grey[100]
+              : theme.palette.grey[900],
+          textAlign: "center",
+        }}
+      >
+        <Typography variant="body2" color="text.secondary">
+          © {new Date().getFullYear()} Harieshwar Jagan Abirami. All rights
+          reserved.
+        </Typography>
+      </Box>
     </Box>
   );
 };

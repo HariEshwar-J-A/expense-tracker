@@ -14,7 +14,7 @@
     "db:reset": "npm run migrate:rollback && npm run migrate:latest && npm run seed"
   },
   "keywords": [],
-  "author": "",
+  "author": "Harieshwar Jagan Abirami <harieshwarja.official@gmail.com>",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {

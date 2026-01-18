@@ -419,7 +419,15 @@ Make sure your receipt has a clear total amount!
 
 ## 📄 License
 
-MIT License - feel free to use for learning and projects!
+MIT License - Copyright (c) 2026 Harieshwar Jagan Abirami
+
+---
+
+## 👤 Author
+
+**Harieshwar Jagan Abirami**
+- Email: [harieshwarja.official@gmail.com](mailto:harieshwarja.official@gmail.com)
+- GitHub: [@HariEshwar-J-A](https://github.com/HariEshwar-J-A)
 
 ---
 
