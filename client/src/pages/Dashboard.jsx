@@ -100,10 +100,9 @@ const Dashboard = () => {
         const svg = d3.select(pieRef.current);
         svg.selectAll("*").remove();
 
-        // Significantly increased width to accommodate long labels (e.g. "Entertainment")
-        const width = 500;
-        const height = 350;
-        const margin = 40;
+        const width = 700;
+        const height = 600;
+        const margin = 50;
         const radius = Math.min(width, height) / 2 - margin;
 
         const g = svg
@@ -196,23 +195,49 @@ const Dashboard = () => {
                 };
             });
 
-        // Smart Labels
+        // --- Label Spacing & Collision Avoidance ---
+        // 1. Calculate nominal positions
+        const labels = data_ready.map(d => {
+            const pos = outerArc.centroid(d);
+            const midAngle = d.startAngle + (d.endAngle - d.startAngle) / 2;
+            pos[0] = radius * 1.05 * (midAngle < Math.PI ? 1 : -1);
+            return { d, pos, midAngle };
+        });
+
+        // 2. Separate into left/right groups for sorting
+        const rightLabels = labels.filter(l => l.midAngle < Math.PI);
+        const leftLabels = labels.filter(l => l.midAngle >= Math.PI);
+
+        // 3. Spacing Logic
+        const LABEL_HEIGHT = 20; // Minimum vertical gap pixels
+        const relax = (group) => {
+            // Sort by Y position
+            group.sort((a, b) => a.pos[1] - b.pos[1]);
+
+            // Push overlapping labels apart
+            for (let i = 0; i < group.length; i++) {
+                if (i > 0) {
+                    const prev = group[i - 1];
+                    const curr = group[i];
+                    if (curr.pos[1] - prev.pos[1] < LABEL_HEIGHT) {
+                        // Push current label down
+                        curr.pos[1] = prev.pos[1] + LABEL_HEIGHT;
+                    }
+                }
+            }
+        }
+
+        relax(rightLabels);
+        relax(leftLabels);
+
+        // Draw Labels
         g.selectAll("text")
-            .data(data_ready)
+            .data(labels)
             .enter()
             .append("text")
-            .text((d) => d.data[0])
-            .attr("transform", (d) => {
-                const pos = outerArc.centroid(d);
-                const midAngle = d.startAngle + (d.endAngle - d.startAngle) / 2;
-                // Push labels out slightly based on angle to avoid overlap
-                pos[0] = radius * 1.05 * (midAngle < Math.PI ? 1 : -1);
-                return `translate(${pos})`;
-            })
-            .style("text-anchor", (d) => {
-                const midAngle = d.startAngle + (d.endAngle - d.startAngle) / 2;
-                return midAngle < Math.PI ? "start" : "end";
-            })
+            .text(l => l.d.data[0])
+            .attr("transform", l => `translate(${l.pos})`)
+            .style("text-anchor", l => (l.midAngle < Math.PI ? "start" : "end"))
             .style("font-size", "12px")
             .style("fill", theme.palette.text.primary)
             .style("opacity", 0)
@@ -221,20 +246,24 @@ const Dashboard = () => {
             .duration(500)
             .style("opacity", 1);
 
-        // Lines connecting slices to labels
+        // Draw Polylines
         g.selectAll("polyline")
-            .data(data_ready)
+            .data(labels)
             .enter()
             .append("polyline")
             .attr("stroke", theme.palette.text.secondary)
             .style("fill", "none")
             .attr("stroke-width", 1)
-            .attr("points", (d) => {
-                const posA = arc.centroid(d); // Line start: center of slice
-                const posB = outerArc.centroid(d); // Line break: outer arc
-                const midAngle = d.startAngle + (d.endAngle - d.startAngle) / 2;
-                const posC = outerArc.centroid(d); // Line end: near label
-                posC[0] = radius * 0.95 * (midAngle < Math.PI ? 1 : -1);
+            .attr("points", l => {
+                const posA = arc.centroid(l.d);
+                const posB = outerArc.centroid(l.d);
+                const posC = [...l.pos]; // Use calculated position
+
+                // Adjust elbow to ensure the horizontal line connects cleanly
+                // We keep posB on the arc, so the line B->C might slant if C was pushed down.
+                // This is acceptable to prevent overlap.
+                posC[0] = radius * 0.95 * (l.midAngle < Math.PI ? 1 : -1);
+
                 return [posA, posB, posC];
             })
             .style("opacity", 0)
