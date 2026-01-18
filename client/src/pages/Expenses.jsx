@@ -119,15 +119,13 @@ const Expenses = () => {
 
     const handleExportPDF = async () => {
         try {
-            const token = localStorage.getItem("token");
             const params = {
                 ...filters,
                 ...sortConfig,
-                limit: 100000, // Get up to 100k records
+                limit: 100000,
             };
 
             const response = await axios.get("/api/expenses/export", {
-                headers: { Authorization: `Bearer ${token}` },
                 params,
                 responseType: "blob",
             });

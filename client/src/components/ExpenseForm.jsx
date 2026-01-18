@@ -62,13 +62,11 @@ const ExpenseForm = ({ open, handleClose, handleSubmit, initialData }) => {
     setUploading(true);
     const uploadData = new FormData();
     uploadData.append("receipt", file);
-    const token = localStorage.getItem("token");
 
     try {
       const res = await axios.post("/api/expenses/parse", uploadData, {
         headers: {
           "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
         },
       });
 

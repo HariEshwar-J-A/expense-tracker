@@ -32,8 +32,8 @@ const LoginPage = () => {
 
       const res = await axios.post(endpoint, payload);
 
-      // Backend returns {token, user} for both login and register
-      login(res.data.token, res.data.user);
+      // Backend returns {user} (cookie set automatically)
+      login(res.data.user);
       navigate("/");
     } catch (err) {
       setError(err.response?.data?.message || "An error occurred");

@@ -11,36 +11,34 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
+    // Configure axios to always send cookies
+    axios.defaults.withCredentials = true;
+
+    const checkSession = async () => {
       try {
-        const decoded = jwtDecode(token);
-        // Check expiry
-        if (decoded.exp * 1000 < Date.now()) {
-          logout();
-        } else {
-          setUser(decoded);
-          // Set default axios header
-          axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-        }
+        const res = await axios.get("/api/auth/me");
+        setUser(res.data.user);
       } catch (error) {
-        logout();
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    };
+
+    checkSession();
   }, []);
 
-  const login = (token, userData) => {
-    localStorage.setItem("token", token);
-    const decoded = jwtDecode(token);
-    setUser(decoded);
-    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  const login = (userData) => {
+    setUser(userData);
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    setUser(null);
-    delete axios.defaults.headers.common["Authorization"];
+  const logout = async () => {
+    try {
+      await axios.post("/api/auth/logout");
+      setUser(null);
+    } catch (error) {
+      console.error("Logout error", error);
+    }
   };
 
   return (

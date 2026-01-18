@@ -4,6 +4,14 @@ const jwt = require("jsonwebtoken");
 const { User } = require("../database/models");
 
 const SECRET = process.env.JWT_SECRET || "fallback_secret";
+const auth = require("../middleware/auth");
+
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production", // true in production
+  sameSite: "strict",
+  maxAge: 24 * 60 * 60 * 1000, // 24 hours
+};
 
 /**
  * POST /api/auth/register
@@ -52,9 +60,11 @@ router.post("/register", async (req, res) => {
       expiresIn: "24h",
     });
 
+    // Set cookie
+    res.cookie("token", token, cookieOptions);
+
     res.status(201).json({
       message: "User registered successfully",
-      token,
       user,
     });
   } catch (error) {
@@ -95,13 +105,42 @@ router.post("/login", async (req, res) => {
       expiresIn: "24h",
     });
 
+    // Set cookie
+    res.cookie("token", token, cookieOptions);
+
     res.json({
-      token,
+      message: "Login successful",
       user: User.sanitize(user),
     });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Server error during login" });
+  }
+});
+
+/**
+ * POST /api/auth/logout
+ * Clear auth cookie
+ */
+router.post("/logout", (req, res) => {
+  res.clearCookie("token");
+  res.json({ message: "Logged out successfully" });
+});
+
+/**
+ * GET /api/auth/me
+ * Get current user (session check)
+ */
+router.get("/me", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json({ user: User.sanitize(user) });
+  } catch (error) {
+    console.error("Session check error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
