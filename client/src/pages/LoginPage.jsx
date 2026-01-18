@@ -96,7 +96,7 @@ const LoginPage = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter your email"
-            InputProps={{ sx: { borderRadius: 3 } }}
+            slotProps={{ input: { sx: { borderRadius: 3 } } }}
           />
 
           {!isLogin && (
@@ -108,7 +108,7 @@ const LoginPage = () => {
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 placeholder="Enter your first name"
-                InputProps={{ sx: { borderRadius: 3 } }}
+                slotProps={{ input: { sx: { borderRadius: 3 } } }}
               />
               <TextField
                 margin="normal"
@@ -117,7 +117,7 @@ const LoginPage = () => {
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 placeholder="Enter your last name"
-                InputProps={{ sx: { borderRadius: 3 } }}
+                slotProps={{ input: { sx: { borderRadius: 3 } } }}
               />
             </>
           )}
@@ -132,7 +132,7 @@ const LoginPage = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter your password"
-            InputProps={{ sx: { borderRadius: 3 } }}
+            slotProps={{ input: { sx: { borderRadius: 3 } } }}
           />
 
           <Button

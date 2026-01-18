@@ -165,10 +165,12 @@ const ExpenseForm = ({ open, handleClose, handleSubmit, initialData }) => {
             fullWidth
             required
             placeholder="0.00"
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">CAD $</InputAdornment>
-              ),
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">CAD $</InputAdornment>
+                ),
+              },
             }}
             value={formData.amount}
             onChange={(e) =>
@@ -210,7 +212,7 @@ const ExpenseForm = ({ open, handleClose, handleSubmit, initialData }) => {
             type="date"
             fullWidth
             required
-            InputLabelProps={{ shrink: true }}
+            slotProps={{ inputLabel: { shrink: true } }}
             value={formData.date}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
           />

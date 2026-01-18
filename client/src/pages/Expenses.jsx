@@ -239,7 +239,7 @@ const Expenses = () => {
                             label="Start Date"
                             type="date"
                             size="small"
-                            InputLabelProps={{ shrink: true }}
+                            slotProps={{ inputLabel: { shrink: true } }}
                             value={filters.startDate}
                             onChange={(e) =>
                                 setFilters({ ...filters, startDate: e.target.value })
@@ -249,7 +249,7 @@ const Expenses = () => {
                             label="End Date"
                             type="date"
                             size="small"
-                            InputLabelProps={{ shrink: true }}
+                            slotProps={{ inputLabel: { shrink: true } }}
                             value={filters.endDate}
                             onChange={(e) =>
                                 setFilters({ ...filters, endDate: e.target.value })
@@ -260,10 +260,12 @@ const Expenses = () => {
                             type="number"
                             size="small"
                             placeholder="0"
-                            InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">$</InputAdornment>
-                                ),
+                            slotProps={{
+                                input: {
+                                    startAdornment: (
+                                        <InputAdornment position="start">$</InputAdornment>
+                                    ),
+                                },
                             }}
                             value={filters.minAmount}
                             onChange={(e) =>
@@ -276,10 +278,12 @@ const Expenses = () => {
                             type="number"
                             size="small"
                             placeholder="Max"
-                            InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">$</InputAdornment>
-                                ),
+                            slotProps={{
+                                input: {
+                                    startAdornment: (
+                                        <InputAdornment position="start">$</InputAdornment>
+                                    ),
+                                },
                             }}
                             value={filters.maxAmount}
                             onChange={(e) =>
