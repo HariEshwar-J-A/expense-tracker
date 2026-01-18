@@ -3,6 +3,11 @@ const router = express.Router();
 const { expenses } = require('../data');
 const auth = require('../middleware/auth');
 const { generateExpenseReport } = require('../utils/pdfGenerator');
+const multer = require('multer');
+const { parseReceipt } = require('../utils/receiptParser');
+
+// Multer setup for memory storage
+const upload = multer({ storage: multer.memoryStorage() });
 
 // GET /api/expenses/export
 router.get('/export', auth, (req, res) => {
@@ -41,6 +46,21 @@ router.get('/export', auth, (req, res) => {
     } catch (error) {
         console.error('PDF Export Error:', error);
         res.status(500).json({ message: 'Error generating report' });
+    }
+});
+
+// POST /api/expenses/parse - Parse PDF Receipt
+router.post('/parse', auth, upload.single('receipt'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+
+        const parsedData = await parseReceipt(req.file.buffer);
+        res.json(parsedData);
+    } catch (error) {
+        console.error('Parse Receipt Error:', error);
+        res.status(500).json({ message: 'Error parsing receipt' });
     }
 });
 
