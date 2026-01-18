@@ -23,81 +23,73 @@ A full-stack expense tracking application with **intelligent PDF receipt parsing
 - **Smart Formatting**: Zebra striping, pagination, and total calculations
 - **Secure Filenames**: Auto-generated timestamps and safe user identifiers
 
+### 📱 Mobile Responsive Design
+- **Adaptive Layout**: Optimized for phones, tablets, and desktops
+- **Touch-friendly**: Large buttons and scrollable tables
+- **Responsive Charts**: D3 visualizations scale to any screen size
+
+### ⚠️ Duplicate Detection
+- **Smart scanning**: Detects potentially duplicate receipts based on Amount, Date, and Vendor
+- **User Alerts**: Confirms before saving potential duplicates to prevent double-entry
+
+### 💾 Robust Data Layer
+- **Knex.js Integration**: Professional SQL query builder
+- **Multi-DB Support**: 
+  - **SQLite** (Zero-config, great for dev)
+  - **PostgreSQL** (Production ready)
+- **Data Persistence**: All Expenses and Users persisted to database
+
 ### 🔐 Authentication
 - JWT-based secure authentication
 - User registration & login
 - Protected routes
-- **Security Best Practices**: HttpOnly cookie ready (in progress)
+- **Security Best Practices**: HttpOnly cookies & Secure headers
 
 ---
 
 ## ▶️ HOW TO RUN APP
 
-### 🖥️ Backend (Server)
+### � Quick Start
 
-1. **Navigate to server directory**
+1. **Install Dependencies** (Root, Client, Server)
    ```bash
-   cd server
+   npm install && npm run postinstall
    ```
 
-2. **Install dependencies** (first time only)
-   ```bash
-   npm install
-   ```
-
-3. **Configure environment** (first time only)
-   
-   Create `server/.env` file:
-   ```env
-   JWT_SECRET=your-secret-key-change-this
-   OCR_SPACE_API_KEY=your-ocr-api-key-here
-   ```
-   
-   Get free OCR key: https://ocr.space/ocrapi
-
-4. **Start the server**
+2. **Start Development (Both Client & Server)**
    ```bash
    npm run dev
    ```
-   
-   ✅ Server running at: `http://localhost:5000`
+   - Client: [http://localhost:5173](http://localhost:5173)
+   - Server: [http://localhost:5000](http://localhost:5000)
 
-### 🎨 Frontend (Client)
+### 📦 Production Build
 
-1. **Navigate to client directory**
+1. **Build Client**
    ```bash
-   cd client
+   npm run build
    ```
 
-2. **Install dependencies** (first time only)
+2. **Start Production Server**
    ```bash
-   npm install
+   npm start
    ```
+   - The app will be available at [http://localhost:5000](http://localhost:5000)
 
-3. **Start the development server**
-   ```bash
-   npm run dev
-   ```
-   
-   ✅ App running at: `http://localhost:5173`
+### � Manual Setup (Legacy)
 
-### 🔄 Running Both Together
+If you prefer running them separately:
 
-**Option 1: Two Terminals**
-```bash
-# Terminal 1 - Backend
-cd server
-npm run dev
+#### Backend
+1. `cd server`
+2. `npm install`
+3. Configure `.env`
+4. `npm run dev`
 
-# Terminal 2 - Frontend  
-cd client
-npm run dev
-```
-
-**Option 2: Using concurrently** (if installed)
-```bash
-npm run dev:all
-```
+#### Frontend
+1. `cd client`
+2. `npm install`
+3. `npm run dev`
 
 Once both are running, open your browser to `http://localhost:5173` and start tracking expenses!
 
@@ -452,5 +444,6 @@ Having issues? Check:
 ## 📚 Documentation
 
 - **[Streaming Export Implementation](./docs/streaming_plan.md)**: Architectural plan for implementing unlimited CSV/PDF exports.
+- **[Money Saving Strategies & Roadmap](./docs/money_saving_strategies.md)**: Explore planned features like Smart Budgets, Subscription Detective, and AI Insights designed to help you reduce expenses and maximize savings.
 
 **Built with ❤️ using React, Node.js, and OCR.space**

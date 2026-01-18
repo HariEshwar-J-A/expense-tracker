@@ -1,0 +1,18 @@
+{
+    "name": "expense-tracker-root",
+    "version": "1.0.0",
+    "description": "Root package for Expense Tracker App",
+    "scripts": {
+        "postinstall": "npm install --prefix client && npm install --prefix server",
+        "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+        "start": "npm run start --prefix server",
+        "build": "npm run build --prefix client",
+        "test": "npm test --prefix server"
+    },
+    "keywords": [],
+    "author": "Harieshwar Jagan Abirami <harieshwarja.official@gmail.com>",
+    "license": "MIT",
+    "devDependencies": {
+        "concurrently": "^9.1.2"
+    }
+}

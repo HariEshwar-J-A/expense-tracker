@@ -20,12 +20,27 @@ app.use(morgan("dev"));
 const authRoutes = require("./routes/auth");
 const expenseRoutes = require("./routes/expenses");
 
+const path = require("path");
+
 // Routes
-app.get("/", (req, res) => {
-  res.json({ message: "Expense Tracker API is running" });
-});
+// app.get("/", (req, res) => {
+//   res.json({ message: "Expense Tracker API is running" });
+// });
 
 app.use("/api/auth", authRoutes);
 app.use("/api/expenses", expenseRoutes);
+
+// Serve static assets in production
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "../client/dist")));
+
+  app.get("*", (req, res) => {
+    res.sendFile(path.resolve(__dirname, "../client/dist", "index.html"));
+  });
+} else {
+  app.get("/", (req, res) => {
+    res.json({ message: "Expense Tracker API is running (Dev Mode)" });
+  });
+}
 
 module.exports = app;
