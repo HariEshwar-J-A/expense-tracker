@@ -19,6 +19,21 @@ router.post("/parse", auth, upload.single("receipt"), async (req, res) => {
         }
 
         const parsedData = await parseReceipt(req.file.buffer);
+
+        // Check for duplicates if we have valid data
+        if (parsedData.amount && parsedData.date && parsedData.vendor) {
+            const duplicate = await Expense.findDuplicate(req.user.id, {
+                amount: parsedData.amount,
+                date: parsedData.date,
+                vendor: parsedData.vendor,
+            });
+
+            if (duplicate) {
+                parsedData.isDuplicate = true;
+                parsedData.duplicateId = duplicate.id;
+            }
+        }
+
         res.json(parsedData);
     } catch (error) {
         console.error("Parse Receipt Error:", error);

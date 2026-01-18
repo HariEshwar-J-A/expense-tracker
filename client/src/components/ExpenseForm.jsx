@@ -72,7 +72,20 @@ const ExpenseForm = ({ open, handleClose, handleSubmit, initialData }) => {
 
 
 
-      const { vendor, date, amount, category } = res.data;
+      const { vendor, date, amount, category, isDuplicate } = res.data;
+
+      // Check for duplicate
+      if (isDuplicate) {
+        const proceed = window.confirm(
+          `⚠️ Potential Duplicate Found!\n\nA similar expense already exists:\nVendor: ${vendor}\nAmount: $${amount}\nDate: ${date}\n\nDo you want to proceed with this receipt?`,
+        );
+
+        if (!proceed) {
+          setUploading(false);
+          if (fileInputRef.current) fileInputRef.current.value = "";
+          return;
+        }
+      }
 
       // Build feedback message
       const extracted = [];

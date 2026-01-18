@@ -226,13 +226,13 @@ class Expense {
     const topVendor =
       topVendorResult.length > 0
         ? {
-            vendor: topVendorResult[0].vendor,
-            total: parseFloat(topVendorResult[0].total).toFixed(2),
-          }
+          vendor: topVendorResult[0].vendor,
+          total: parseFloat(topVendorResult[0].total).toFixed(2),
+        }
         : {
-            vendor: "N/A",
-            total: "0.00",
-          };
+          vendor: "N/A",
+          total: "0.00",
+        };
 
     return {
       total: {
@@ -255,6 +255,31 @@ class Expense {
       })),
       topVendor: topVendor,
     };
+  }
+
+  /**
+   * Check for duplicate expenses
+   * @param {string} userId - User ID
+   * @param {Object} criteria - Search criteria {amount, date, vendor}
+   * @returns {Promise<Object|null>} Found duplicate or null
+   */
+  static async findDuplicate(userId, { amount, date, vendor }) {
+    const adapter = getAdapter();
+    const db = adapter.getConnection();
+
+    // Basic duplicate check logic
+    // We look for same amount AND same date AND similar vendor
+    const query = db("expenses")
+      .where({
+        user_id: userId,
+        amount: parseFloat(amount),
+        date: date,
+      })
+      .where("vendor", "like", `%${vendor}%`) // Simple fuzzy match
+      .first();
+
+    const duplicate = await query;
+    return duplicate ? this.toApiFormat(duplicate) : null;
   }
 
   /**
