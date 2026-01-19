@@ -167,13 +167,16 @@ npm run seed
 
 ### Database Options
 
-**SQLite (Default - Recommended for Development)**
+**SQLite (Default - Recommended)**
 ```env
 DB_TYPE=sqlite
 DB_PATH=./data/expense_tracker.db
 ```
+- ✅ Fully tested and production-ready
+- ✅ Zero configuration required
+- ✅ Perfect for single-user deployments
 
-**PostgreSQL (For Production - Available for Future Use)**
+**PostgreSQL (Available - Not Fully Tested)**
 ```env
 DB_TYPE=postgres
 DB_HOST=localhost
@@ -182,6 +185,12 @@ DB_NAME=expense_tracker
 DB_USER=your_username
 DB_PASSWORD=your_password
 ```
+
+> **⚠️ PostgreSQL Status:**
+> - Implemented via adapter pattern for future scalability
+> - **Not fully tested** in production environments
+> - Subject to validation and testing in future releases
+> - Use SQLite for current deployments unless you're willing to test PostgreSQL yourself
 
 ### OCR API Setup (Optional)
 

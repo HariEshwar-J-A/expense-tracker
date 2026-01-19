@@ -12,11 +12,17 @@ A full-stack expense tracking application with **intelligent PDF receipt parsing
 - Extracts: **Vendor**, **Date**, **Amount**, **Category**
 - Smart pattern matching for TOTAL/AMOUNT keywords
 
-### � Dashboard Analytics
+### 📊 Dashboard Analytics
+- **Budget Period Toggle**: Switch between monthly and yearly budget views on the fly
 - **Visual Insights**: Interactive charts using D3.js
+  - Spending by Category (Pie Chart with smart label positioning)
+  - Monthly Trends (Bar Chart with 6-month history)
 - **Key Metrics**: Total Spend, Avg Transaction, Top Category, Top Vendor
-- **Trend Analysis**: Daily and monthly spending trends
-- **Category Breakdown**: visual pie charts
+- **Advanced Widgets**:
+  - Safe-to-Spend Gauge (shows remaining budget visually)
+  - Spending Velocity (tracks spending pace vs. time remaining)
+- **Trend Analysis**: Daily and weekly spending aggregation
+- **Category Breakdown**: Visual pie charts with collision-free labels
 
 ### 📝 Enhanced Reporting
 - **Professional PDF Exports**: Executive summary, category breakdown, and detailed transaction tables
@@ -28,16 +34,50 @@ A full-stack expense tracking application with **intelligent PDF receipt parsing
 - **Touch-friendly**: Large buttons and scrollable tables
 - **Responsive Charts**: D3 visualizations scale to any screen size
 
-### ⚠️ Duplicate Detection
-- **Smart scanning**: Detects potentially duplicate receipts based on Amount, Date, and Vendor
-- **User Alerts**: Confirms before saving potential duplicates to prevent double-entry
+### 💰 Smart Budget Planning
+- **Flexible Budget Periods**: Toggle between monthly and yearly budget views
+- **Safe-to-Spend Gauge**: Visual indicator showing remaining budget
+- **Spending Velocity**: Track spending pace against budget timeline
+
+### 📊 Comprehensive Expense Management
+- **Advanced Filtering**:
+  - Filter by date range (custom start and end dates)
+  - Filter by category (Food, Transport, Utilities, etc.)
+  - Filter by vendor name
+  - Combine multiple filters simultaneously
+- **Flexible Sorting**:
+  - Sort by date (newest/oldest first)
+  - Sort by amount (highest/lowest first)
+  - Sort by vendor (A-Z or Z-A)
+  - Sort by category
+- **Pagination**: Navigate through large expense lists efficiently
+- **CRUD Operations**: Create, Read, Update, and Delete expense entries
+
+### 📤 Import/Export Capabilities
+- **Multi-format Export**: 
+  - **PDF**: Professional reports with executive summary, category breakdown, and detailed tables
+  - **CSV**: Spreadsheet-compatible format for data analysis
+  - **JSON**: Full data export for backup and migration
+- **Multi-format Import**: 
+  - **CSV**: Import expense data from spreadsheets
+  - **JSON**: Restore from JSON backups
+  - **PDF Receipts**: Single receipt parsing (not bulk import)
+
+> **⚠️ IMPORT WARNING:**
+> - CSV and JSON imports can create duplicate entries if used carelessly
+> - **Use import only as a last resort** (e.g., migrating from another app, restoring backups)
+> - Always review imported data before saving
+> - PDF receipt uploads parse ONE receipt at a time with duplicate detection enabled
+> - Bulk PDF imports are NOT supported to prevent accidental duplicates
 
 ### 💾 Robust Data Layer
 - **Knex.js Integration**: Professional SQL query builder
 - **Multi-DB Support**: 
-  - **SQLite** (Zero-config, great for dev)
-  - **PostgreSQL** (Production ready)
+  - **SQLite** (Default, fully tested, zero-config)
+  - **PostgreSQL** (Available via adapter pattern, not fully tested - subject to future validation)
 - **Data Persistence**: All Expenses and Users persisted to database
+
+> **⚠️ Database Note:** PostgreSQL support is implemented via the adapter pattern but has not been fully tested in production. SQLite is recommended for current deployments. PostgreSQL validation is planned for future releases.
 
 ### 🔐 Authentication
 - JWT-based secure authentication
@@ -443,12 +483,18 @@ Make sure your receipt has a clear total amount!
 
 ## 🚧 Future Enhancements
 
+> **🚀 Coming Soon:** Fully hosted app will be available soon for public (dev community) use, with more fun features.
+
 - [x] Database integration (SQLite/PostgreSQL via Knex)
 - [x] Receipt storage & history (Persisted in DB)
 - [x] Advanced PDF Reporting
+- [x] Export to CSV/JSON
+- [x] Import from CSV/JSON
+- [ ] Budget History Tracking (track income and budget changes over time with effective dates)
+- [ ] Month-Specific Budgets (set different budgets for different months)
 - [ ] Receipt image uploads (JPG, PNG)
 - [ ] Multi-currency support
-- [ ] Export to CSV/Excel
+- [ ] Bulk PDF receipt uploads with duplicate prevention
 - [ ] Mobile app
 
 ---
