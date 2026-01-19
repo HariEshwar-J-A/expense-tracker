@@ -56,9 +56,29 @@ const ExpenseForm = ({ open, handleClose, handleSubmit, initialData }) => {
     handleSubmit(formData);
   };
 
+  // Ref to hold the abort controller
+  const abortControllerRef = useRef(null);
+
+  // Cleanup on unmount or when dialog closes
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    // Abort previous request if any
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new controller
+    abortControllerRef.current = new AbortController();
 
     setUploading(true);
     const uploadData = new FormData();
@@ -69,9 +89,8 @@ const ExpenseForm = ({ open, handleClose, handleSubmit, initialData }) => {
         headers: {
           "Content-Type": "multipart/form-data",
         },
+        signal: abortControllerRef.current.signal, // Connect signal
       });
-
-
 
       const { vendor, date, amount, category, isDuplicate } = res.data;
 
@@ -123,6 +142,11 @@ const ExpenseForm = ({ open, handleClose, handleSubmit, initialData }) => {
 
       alert(message);
     } catch (error) {
+      if (axios.isCancel(error)) {
+        console.log("Request canceled", error.message);
+        return; // gracefully exit
+      }
+
       console.error("❌ PDF parsing failed:", error);
       const errorMsg =
         error.response?.data?.message || error.message || "Unknown error";
@@ -130,8 +154,11 @@ const ExpenseForm = ({ open, handleClose, handleSubmit, initialData }) => {
         `Failed to scan receipt:\n${errorMsg}\n\nPlease fill in the form manually.`,
       );
     } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      // Only reset if not cancelled (conflict with unmount)
+      if (!abortControllerRef.current?.signal.aborted) {
+        setUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
     }
   };
 
