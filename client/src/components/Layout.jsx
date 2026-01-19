@@ -25,7 +25,6 @@ const Layout = ({ children }) => {
 
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      {/* Skip Link for Accessibility */}
       <a
         href="#main-content"
         style={{

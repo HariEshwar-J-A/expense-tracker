@@ -24,7 +24,7 @@ const getTheme = (mode, primaryColor) =>
       },
     },
     typography: {
-      fontFamily: '"Outfit", "Inter", "Roboto", sans-serif', // Updated font recommendation
+      fontFamily: '"Outfit", "Inter", "Roboto", sans-serif',
       h1: { fontWeight: 700 },
       h2: { fontWeight: 700 },
       h3: { fontWeight: 600 },
@@ -99,7 +99,7 @@ const getTheme = (mode, primaryColor) =>
       MuiCard: {
         styleOverrides: {
           root: {
-            overflow: "visible", // For cool glowing effects if needed
+            overflow: "visible", // For cool glowing effects
           },
         },
       },

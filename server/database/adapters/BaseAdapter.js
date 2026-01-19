@@ -41,7 +41,7 @@ class BaseAdapter {
    * @param {Function} callback - Function to execute within transaction
    * @returns {Promise<*>} Result of the transaction
    */
-  async transaction(callback) {
+  async transaction(_callback) {
     throw new Error("transaction() must be implemented by adapter");
   }
 

@@ -5,8 +5,6 @@ import {
     Paper,
     Grid,
     useTheme,
-    Card,
-    CardContent,
     Button,
     Dialog,
     DialogTitle,
@@ -266,7 +264,6 @@ const Dashboard = () => {
 
                 // Adjust elbow to ensure the horizontal line connects cleanly
                 // We keep posB on the arc, so the line B->C might slant if C was pushed down.
-                // This is acceptable to prevent overlap.
                 posC[0] = radius * 0.95 * (l.midAngle < Math.PI ? 1 : -1);
 
                 return [posA, posB, posC];
