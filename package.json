@@ -6,8 +6,8 @@
         "install:apps": "npm install --prefix client && npm install --prefix server",
         "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
         "dev:fresh": "npm run db:reset --prefix server && npm run dev",
-        "start": "npm run start --prefix server",
-        "start:fresh": "npm run db:setup --prefix server && npm run build && npm run start",
+        "start": "cross-env NODE_ENV=production npm run start --prefix server",
+        "start:fresh": "cross-env NODE_ENV=production npm run db:setup --prefix server && npm run build && cross-env NODE_ENV=production npm run start --prefix server",
         "build": "npm run build --prefix client",
         "test": "npm test --prefix server",
         "setup": "npm install && npm run install:apps && npm run db:setup --prefix server",
@@ -17,6 +17,7 @@
     "author": "Harieshwar Jagan Abirami <harieshwarja.official@gmail.com>",
     "license": "MIT",
     "devDependencies": {
-        "concurrently": "^9.1.2"
+        "concurrently": "^9.1.2",
+        "cross-env": "^10.1.0"
     }
 }

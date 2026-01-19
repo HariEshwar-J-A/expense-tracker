@@ -75,9 +75,9 @@ cd expense-tracker
 
 **Option A: Automatic (Recommended)**
 ```bash
-npm install
+npm install && npm run install:apps
 ```
-This automatically installs dependencies for:
+This installs dependencies for:
 - Root project (concurrently)
 - Client (React app)
 - Server (Express API)
@@ -121,6 +121,14 @@ JWT_SECRET=your-secure-random-secret-key-here
 
 # OCR Configuration (OPTIONAL - for receipt scanning)
 OCR_SPACE_API_KEY=your-ocr-api-key-here
+
+# URL Configuration (OPTIONAL)
+# Client URL for CORS (Server-side) - Defaults to http://localhost:5173
+CLIENT_URL=http://localhost:5173
+
+# API URL for Proxy (Client-side) - Defaults to http://localhost:5000
+# Set this in client/.env as VITE_API_URL=http://your-api-url.com if needed
+
 ```
 
 > **🔐 SECURITY WARNING:** 
@@ -352,7 +360,6 @@ npm run seed
 - [ ] Change `JWT_SECRET` in `.env`
 - [ ] Set `DB_TYPE=postgres` if using PostgreSQL
 - [ ] Configure database credentials
-- [ ] Set `NODE_ENV=production`
 - [ ] Build client: `npm run build`
 - [ ] Test production build locally
 
@@ -423,7 +430,7 @@ docker-compose up -d
 ```bash
 # Solution: Reinstall dependencies
 npm install
-npm run postinstall
+npm run install:apps
 ```
 
 **❌ "Port 5000 already in use"**

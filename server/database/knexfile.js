@@ -44,17 +44,25 @@ module.exports = {
   },
 
   production: {
-    client: "pg",
-    connection: {
+    client: process.env.DB_TYPE === "postgres" ? "pg" : "better-sqlite3",
+    connection: process.env.DB_TYPE === "postgres" ? {
       host: process.env.DB_HOST || "localhost",
       port: process.env.DB_PORT || 5432,
       database: process.env.DB_NAME || "expense_tracker",
       user: process.env.DB_USER || "postgres",
-      password: process.env.DB_PASSWORD || "",
+      password: process.env.DB_PASSWORD,
+    } : {
+      filename: process.env.DB_PATH || path.join(__dirname, "../data/expense_tracker.db"),
     },
-    pool: {
+    useNullAsDefault: true,
+    pool: process.env.DB_TYPE === "postgres" ? {
       min: 2,
       max: 10,
+    } : {
+      afterCreate: (conn, cb) => {
+        conn.pragma("foreign_keys = ON");
+        cb();
+      },
     },
     migrations: {
       directory: path.join(__dirname, "migrations"),

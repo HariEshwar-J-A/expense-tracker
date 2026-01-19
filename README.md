@@ -139,6 +139,9 @@ DB_PATH=./data/expense_tracker.db
 
 # OPTIONAL - Only needed for scanning scanned/image receipts
 OCR_SPACE_API_KEY=your-ocr-api-key-here
+
+# OPTIONAL - CORS Origin (defaults to localhost:5173)
+CLIENT_URL=http://localhost:5173
 ```
 
 > **🔐 Security Warning:** Never use the default `JWT_SECRET` in production! Generate a secure random key:
@@ -164,7 +167,7 @@ npm run setup && npm run start:fresh
 
 1. **Install Dependencies** (Root, Client, Server)
    ```bash
-   npm install && npm run postinstall
+   npm install && npm run install:apps
    ```
 
 2. **Start Development (Both Client & Server)**
