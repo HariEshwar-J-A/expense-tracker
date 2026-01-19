@@ -11,7 +11,8 @@
     "migrate:rollback": "knex migrate:rollback --knexfile database/knexfile.js",
     "migrate:make": "knex migrate:make --knexfile database/knexfile.js -x js",
     "seed": "knex seed:run --knexfile database/knexfile.js",
-    "db:reset": "npm run migrate:rollback && npm run migrate:latest && npm run seed"
+    "db:reset": "npm run migrate:rollback && npm run migrate:latest && npm run seed",
+    "db:setup": "npm run migrate:latest"
   },
   "keywords": [],
   "author": "Harieshwar Jagan Abirami <harieshwarja.official@gmail.com>",
