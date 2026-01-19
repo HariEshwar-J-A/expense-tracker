@@ -12,11 +12,30 @@ import {
     DialogActions,
     TextField,
     InputAdornment,
+    IconButton,
+    Tooltip,
+    Alert,
 } from "@mui/material";
 import { useAuth } from "../context/AuthContext";
 import { useThemeContext } from "../context/ThemeContext";
 import axios from "axios";
 import * as d3 from "d3";
+import {
+    format,
+    startOfMonth,
+    endOfMonth,
+    startOfYear,
+    endOfYear,
+    addMonths,
+    subMonths,
+    addYears,
+    subYears,
+    isSameMonth,
+    isSameYear
+} from "date-fns";
+import ArrowBackIos from "@mui/icons-material/ArrowBackIos";
+import ArrowForwardIos from "@mui/icons-material/ArrowForwardIos";
+import Today from "@mui/icons-material/Today";
 import AttachMoney from "@mui/icons-material/AttachMoney";
 import ShowChart from "@mui/icons-material/ShowChart";
 import Category from "@mui/icons-material/Category";
@@ -24,15 +43,37 @@ import Store from "@mui/icons-material/Store";
 import CalendarMonth from "@mui/icons-material/CalendarMonth";
 import CalendarToday from "@mui/icons-material/CalendarToday";
 import { ToggleButton, ToggleButtonGroup } from "@mui/material";
+import BudgetManager from "../components/BudgetManager";
+import BudgetProgressWidget from "../components/BudgetProgressWidget";
 
 const Dashboard = () => {
     const theme = useTheme();
     const { primaryColor } = useThemeContext();
     const { user, updateUser } = useAuth(); // Moved here
     const [stats, setStats] = useState(null);
-    const [period, setPeriod] = useState("monthly"); // Local state for toggle
+    const [period, setPeriod] = useState("monthly"); // 'monthly' | 'yearly'
+    const [selectedDate, setSelectedDate] = useState(new Date());
     const pieRef = useRef();
     const barRef = useRef();
+
+    // Smart Budgets State
+    const [categoryBudgets, setCategoryBudgets] = useState({});
+    const [openCategoryManager, setOpenCategoryManager] = useState(false);
+
+    const fetchBudgets = async () => {
+        try {
+            const res = await axios.get("/api/budgets");
+            const map = {};
+            res.data.forEach(b => map[b.category] = b.amount);
+            setCategoryBudgets(map);
+        } catch (error) {
+            console.error("Error loading budgets", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchBudgets();
+    }, []);
 
     // Sync local period with user preference on load
     useEffect(() => {
@@ -44,8 +85,22 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                // Fetch stats for the selected period
-                const res = await axios.get(`/api/expenses/stats?period=${period}`);
+                // Calculate exact Date Range based on period + selectedDate
+                let start, end;
+                if (period === 'yearly') {
+                    start = startOfYear(selectedDate);
+                    end = endOfYear(selectedDate);
+                } else {
+                    start = startOfMonth(selectedDate);
+                    end = endOfMonth(selectedDate);
+                }
+
+                // Format as YYYY-MM-DD
+                const startDateStr = format(start, 'yyyy-MM-dd');
+                const endDateStr = format(end, 'yyyy-MM-dd');
+
+                // Fetch stats with explicit range
+                const res = await axios.get(`/api/expenses/stats?period=${period}&startDate=${startDateStr}&endDate=${endDateStr}`);
                 const backendStats = res.data;
 
                 // Transform backend stats format to match frontend expectations
@@ -76,9 +131,9 @@ const Dashboard = () => {
                         acc[cat.category] = parseFloat(cat.total);
                         return acc;
                     }, {}),
-                    // Use monthlyTrend data (backend returns last 6 months)
-                    dailyStats: backendStats.monthlyTrend.reduce((acc, month) => {
-                        acc[month.month] = parseFloat(month.total);
+                    // Use dynamic trend data
+                    dailyStats: backendStats.trend.reduce((acc, t) => {
+                        acc[t.label] = parseFloat(t.total);
                         return acc;
                     }, {}),
                 };
@@ -89,13 +144,18 @@ const Dashboard = () => {
             }
         };
         fetchStats();
-    }, [period]);
+    }, [period, selectedDate]);
 
     useEffect(() => {
         if (!stats) return;
 
-        drawPieChart(stats.categoryStats);
-        drawBarChart(stats.dailyStats);
+        if (pieRef.current && Object.keys(stats.categoryStats).length > 0) {
+            drawPieChart(stats.categoryStats);
+        }
+
+        if (barRef.current && Object.keys(stats.dailyStats).length > 0) {
+            drawBarChart(stats.dailyStats);
+        }
         // Additional charts can be added here
     }, [stats, theme.palette.mode, primaryColor]);
 
@@ -334,10 +394,23 @@ const Dashboard = () => {
         // Draw X Axis
         g.append("g")
             .attr("transform", `translate(0,${height})`)
-            .call(d3.axisBottom(x))
+            .call(d3.axisBottom(x).tickFormat(d => {
+                // Weekly Range (e.g. "Jan 01 - Jan 07") - Return as is
+                if (d.includes(' - ')) return d;
+
+                // Daily (YYYY-MM-DD) -> DD
+                if (d.length === 10) return d.split('-')[2];
+
+                // Monthly (YYYY-MM) -> MMM
+                if (d.length === 7) {
+                    const monthIndex = parseInt(d.split('-')[1]) - 1;
+                    return new Date(2000, monthIndex, 1).toLocaleString('default', { month: 'short' });
+                }
+                return d;
+            }))
             .selectAll("text")
             .style("fill", theme.palette.text.secondary)
-            .style("font-size", "12px")
+            .style("font-size", "10px") // Smaller font for weekly labels
             .style("font-weight", "500");
 
         // Draw Y Axis
@@ -549,9 +622,20 @@ const Dashboard = () => {
 
     const handleSaveBudget = async () => {
         const amount = parseFloat(budgetInput);
-        if (amount > 0) {
+        if (amount > 0 && amount <= 500000) {
             await updateUser({ monthlyBudget: amount });
             setOpenBudgetDialog(false);
+        }
+    };
+
+    const handleResetCategoryLimits = async () => {
+        try {
+            await axios.post("/api/budgets/reset-all");
+            await fetchBudgets(); // Refresh category budgets
+            // Update UI
+            setCategoryBudgets({});
+        } catch (error) {
+            console.error("Error resetting category limits:", error);
         }
     };
 
@@ -565,22 +649,35 @@ const Dashboard = () => {
 
     // Calculate Advanced Metrics
     const today = new Date();
-    const currentYear = today.getFullYear();
-    const daysInMonth = new Date(currentYear, today.getMonth() + 1, 0).getDate();
-    const dayOfMonth = today.getDate();
+    // Use selectedDate for context (is it current month/year or past?)
+    const isCurrentPeriod = period === 'yearly'
+        ? isSameYear(selectedDate, today)
+        : isSameMonth(selectedDate, today);
 
-    // Yearly calc elements
-    const startOfYear = new Date(currentYear, 0, 1);
-    const dayOfYear = Math.floor((today - startOfYear) / (1000 * 60 * 60 * 24)) + 1;
-    const isLeapYear = (currentYear % 4 === 0 && currentYear % 100 !== 0) || (currentYear % 400 === 0);
-    const daysInYear = isLeapYear ? 366 : 365;
+    // Days in Period (Total days in the selected month/year)
+    const daysInPeriod = period === 'yearly'
+        ? (isSameYear(selectedDate, new Date(selectedDate.getFullYear(), 1, 29)) ? 366 : 365) // Leap year check simplified
+        : new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate();
+
+    // Elapsed Days (For velocity)
+    let currentDay;
+    if (isCurrentPeriod) {
+        // If we are IN the period, use today's progress
+        currentDay = period === 'yearly'
+            ? Math.floor((today - startOfYear(selectedDate)) / (1000 * 60 * 60 * 24)) + 1
+            : today.getDate();
+    } else if (selectedDate < today) {
+        // If period is in PAST, consider it fully elapsed
+        currentDay = daysInPeriod;
+    } else {
+        // If period is in FUTURE, 0 days elapsed
+        currentDay = 0;
+    }
 
     const totalSpent = stats?.kpis?.totalSpend || 0;
 
     // Determine Budget & Timeframe based on selected period
     const effectiveBudget = period === 'yearly' ? (user?.monthlyBudget || 0) * 12 : (user?.monthlyBudget || 0);
-    const daysInPeriod = period === 'yearly' ? daysInYear : daysInMonth;
-    const currentDay = period === 'yearly' ? dayOfYear : dayOfMonth;
     const periodLabel = period === 'yearly' ? 'Annual' : 'Monthly';
 
     const safeToSpend = Math.max(0, effectiveBudget - totalSpent);
@@ -649,22 +746,120 @@ const Dashboard = () => {
                         {user?.monthlyBudget > 0 ? "Edit Budget" : "Set Budget"}
                     </Button>
 
-                    <ToggleButtonGroup
-                        value={period}
-                        exclusive
-                        onChange={handlePeriodChange}
-                        aria-label="budget period"
-                        size="small"
-                    >
-                        <ToggleButton value="monthly" aria-label="monthly">
-                            <CalendarMonth sx={{ mr: 1 }} /> Month
-                        </ToggleButton>
-                        <ToggleButton value="yearly" aria-label="yearly">
-                            <CalendarToday sx={{ mr: 1 }} /> Year
-                        </ToggleButton>
-                    </ToggleButtonGroup>
+                    <Paper elevation={0} variant="outlined" sx={{ display: 'flex', alignItems: 'center', p: '2px 4px', borderRadius: 2 }}>
+                        {/* Period Toggle */}
+                        <ToggleButtonGroup
+                            value={period}
+                            exclusive
+                            onChange={handlePeriodChange}
+                            aria-label="budget period"
+                            size="small"
+                            sx={{ mr: 1, border: 'none' }}
+                        >
+                            <ToggleButton
+                                value="monthly"
+                                aria-label="monthly"
+                                sx={{
+                                    border: 'none',
+                                    borderRadius: 2,
+                                    padding: '6px 12px',
+                                    '&.Mui-selected': {
+                                        bgcolor: 'primary.main',
+                                        color: 'primary.contrastText',
+                                        '&:hover': {
+                                            bgcolor: 'primary.dark',
+                                        }
+                                    },
+                                    '&:hover': {
+                                        bgcolor: theme.palette.mode === 'dark'
+                                            ? 'rgba(255, 255, 255, 0.08)'
+                                            : 'rgba(0, 0, 0, 0.04)',
+                                    },
+                                    transition: 'all 0.2s ease-in-out',
+                                }}
+                            >
+                                <CalendarMonth />
+                            </ToggleButton>
+                            <ToggleButton
+                                value="yearly"
+                                aria-label="yearly"
+                                sx={{
+                                    border: 'none',
+                                    borderRadius: 2,
+                                    padding: '6px 12px',
+                                    '&.Mui-selected': {
+                                        bgcolor: 'primary.main',
+                                        color: 'primary.contrastText',
+                                        '&:hover': {
+                                            bgcolor: 'primary.dark',
+                                        }
+                                    },
+                                    '&:hover': {
+                                        bgcolor: theme.palette.mode === 'dark'
+                                            ? 'rgba(255, 255, 255, 0.08)'
+                                            : 'rgba(0, 0, 0, 0.04)',
+                                    },
+                                    transition: 'all 0.2s ease-in-out',
+                                }}
+                            >
+                                <CalendarToday />
+                            </ToggleButton>
+                        </ToggleButtonGroup>
+
+                        {/* Date Navigation */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', borderLeft: `1px solid ${theme.palette.divider}`, pl: 1 }}>
+                            {/* Previous */}
+                            <IconButton
+                                size="small"
+                                onClick={() => setSelectedDate(prev => period === 'yearly' ? subYears(prev, 1) : subMonths(prev, 1))}
+                            >
+                                <ArrowBackIos fontSize="inherit" />
+                            </IconButton>
+
+                            {/* Label */}
+                            <Typography variant="body2" fontWeight="bold" sx={{ minWidth: 100, textAlign: 'center', px: 1 }}>
+                                {period === 'yearly' ? format(selectedDate, 'yyyy') : format(selectedDate, 'MMMM yyyy')}
+                            </Typography>
+
+                            {/* Next */}
+                            <IconButton
+                                size="small"
+                                onClick={() => setSelectedDate(prev => period === 'yearly' ? addYears(prev, 1) : addMonths(prev, 1))}
+                            >
+                                <ArrowForwardIos fontSize="inherit" />
+                            </IconButton>
+
+                            {/* Jump to Current */}
+                            {(!isSameMonth(selectedDate, new Date()) || (period === 'yearly' && !isSameYear(selectedDate, new Date()))) && (
+                                <Tooltip title="Jump to Current">
+                                    <IconButton
+                                        size="small"
+                                        color="primary"
+                                        onClick={() => setSelectedDate(new Date())}
+                                        sx={{ ml: 0.5 }}
+                                    >
+                                        <Today fontSize="inherit" />
+                                    </IconButton>
+                                </Tooltip>
+                            )}
+                        </Box>
+                    </Paper>
                 </Box>
             </Box>
+
+            {/* Smart Budgets Row (New) */}
+            <Grid container spacing={3} sx={{ mb: 3 }}>
+                <Grid size={{ xs: 12 }}>
+                    <BudgetProgressWidget
+                        budgets={categoryBudgets}
+                        categorySpend={stats?.categoryStats || {}}
+                        onEdit={() => setOpenCategoryManager(true)}
+                        period={period}
+                        totalBudget={user?.monthlyBudget || 0}
+                        totalSpent={totalSpent}
+                    />
+                </Grid>
+            </Grid>
 
             {/* Top Row: Persistent Analytics Widgets */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -748,35 +943,83 @@ const Dashboard = () => {
             </Paper>
 
             {/* Budget Dialog */}
-            <Dialog open={openBudgetDialog} onClose={() => setOpenBudgetDialog(false)}>
+            <Dialog open={openBudgetDialog} onClose={() => setOpenBudgetDialog(false)} maxWidth="sm" fullWidth>
                 <DialogTitle>Set Monthly Spendable Income</DialogTitle>
                 <DialogContent>
                     <Typography variant="body2" sx={{ mb: 2 }}>
-                        Enter your total monthly budget to unlock "Safe-to-Spend" and "Velocity" insights.
+                        Enter your total monthly budget (up to $500,000) to unlock "Safe-to-Spend" and "Velocity" insights.
                     </Typography>
-                    <TextField
-                        autoFocus
-                        margin="dense"
-                        label="Monthly Budget ($)"
-                        type="number"
-                        fullWidth
-                        variant="outlined"
-                        value={budgetInput}
-                        onChange={(e) => setBudgetInput(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleSaveBudget();
-                        }}
-                        slotProps={{
-                            input: { startAdornment: <InputAdornment position="start">$</InputAdornment> }
-                        }}
-                    />
+
+                    {/* Calculate total category limits */}
+                    {(() => {
+                        const totalCategoryLimits = Object.values(categoryBudgets).reduce((sum, limit) => sum + parseFloat(limit || 0), 0);
+                        const proposedBudget = parseFloat(budgetInput) || 0;
+                        const willExceedLimits = totalCategoryLimits > 0 && proposedBudget > 0 && proposedBudget < totalCategoryLimits;
+
+                        return (
+                            <>
+                                {willExceedLimits && (
+                                    <Alert severity="warning" sx={{ mb: 2 }}>
+                                        <strong>Category limits exceed this budget</strong>
+                                        <br />
+                                        Your category limits total ${totalCategoryLimits.toFixed(0)}.
+                                        Reset category limits to proceed, or increase your budget.
+                                        <Box sx={{ mt: 1.5 }}>
+                                            <Button
+                                                size="small"
+                                                variant="outlined"
+                                                color="warning"
+                                                onClick={async () => {
+                                                    await handleResetCategoryLimits();
+                                                }}
+                                            >
+                                                Reset Category Limits to $0
+                                            </Button>
+                                        </Box>
+                                    </Alert>
+                                )}
+
+                                <TextField
+                                    autoFocus
+                                    margin="dense"
+                                    label="Monthly Budget ($)"
+                                    type="number"
+                                    fullWidth
+                                    variant="outlined"
+                                    value={budgetInput}
+                                    onChange={(e) => setBudgetInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveBudget();
+                                    }}
+                                    slotProps={{
+                                        input: {
+                                            startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                                            inputProps: { min: 0, max: 500000 }
+                                        }
+                                    }}
+                                    helperText="Enter amount between $0 - $500,000"
+                                />
+                            </>
+                        );
+                    })()}
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setOpenBudgetDialog(false)}>Cancel</Button>
-                    <Button onClick={handleSaveBudget} variant="contained">Save Budget</Button>
+                    <Button
+                        onClick={handleSaveBudget}
+                        variant="contained"
+                    >
+                        Save Budget
+                    </Button>
                 </DialogActions>
             </Dialog>
 
+            <BudgetManager
+                open={openCategoryManager}
+                onClose={() => setOpenCategoryManager(false)}
+                onSave={fetchBudgets}
+                totalBudget={user?.monthlyBudget || 0}
+            />
 
             {/* Charts Row */}
             <Grid container spacing={3}>
@@ -795,7 +1038,15 @@ const Dashboard = () => {
                         <Typography variant="h2" fontSize="1.5rem" gutterBottom>
                             Spending by Category
                         </Typography>
-                        <svg ref={pieRef}></svg>
+                        {stats && Object.keys(stats.categoryStats).length > 0 ? (
+                            <svg ref={pieRef}></svg>
+                        ) : (
+                            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.6 }}>
+                                <Category sx={{ fontSize: 80, color: 'text.disabled', mb: 2 }} />
+                                <Typography variant="h6" color="text.secondary">No Expenses Yet</Typography>
+                                <Typography variant="body2" color="text.disabled">Add expenses to see breakdown</Typography>
+                            </Box>
+                        )}
                     </Paper>
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
@@ -811,13 +1062,23 @@ const Dashboard = () => {
                         }}
                     >
                         <Typography variant="h2" fontSize="1.5rem" gutterBottom>
-                            Monthly Trends (Last 6 Months)
+                            {period === 'yearly' ? 'Annual Trends' : 'Monthly Trends'}
                         </Typography>
-                        <svg ref={barRef} style={{ width: "100%", height: "auto" }}></svg>
+                        {stats && Object.keys(stats.dailyStats).length > 0 ? (
+                            <svg ref={barRef} style={{ width: "100%", height: "auto" }}></svg>
+                        ) : (
+                            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.6 }}>
+                                <ShowChart sx={{ fontSize: 80, color: 'text.disabled', mb: 2 }} />
+                                <Typography variant="h6" color="text.secondary">No Trend Data</Typography>
+                                <Typography variant="body2" color="text.disabled">
+                                    {period === 'yearly' ? 'Add expenses this year' : 'Add expenses this month'}
+                                </Typography>
+                            </Box>
+                        )}
                     </Paper>
                 </Grid>
             </Grid>
-        </Box>
+        </Box >
     );
 };
 
