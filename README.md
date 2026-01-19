@@ -490,9 +490,9 @@ Make sure your receipt has a clear total amount!
 - [x] Advanced PDF Reporting
 - [x] Export to CSV/JSON
 - [x] Import from CSV/JSON
+- [x] Receipt image uploads (JPG, PNG)
 - [ ] Budget History Tracking (track income and budget changes over time with effective dates)
 - [ ] Month-Specific Budgets (set different budgets for different months)
-- [ ] Receipt image uploads (JPG, PNG)
 - [ ] Multi-currency support
 - [ ] Bulk PDF receipt uploads with duplicate prevention
 - [ ] Mobile app
