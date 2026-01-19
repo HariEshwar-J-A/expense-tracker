@@ -3,15 +3,15 @@
     "version": "1.0.0",
     "description": "Root package for Expense Tracker App",
     "scripts": {
-        "postinstall": "npm install --prefix client && npm install --prefix server",
+        "install:apps": "npm install --prefix client && npm install --prefix server",
         "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
         "dev:fresh": "npm run db:reset --prefix server && npm run dev",
         "start": "npm run start --prefix server",
         "start:fresh": "npm run db:setup --prefix server && npm run build && npm run start",
         "build": "npm run build --prefix client",
         "test": "npm test --prefix server",
-        "setup": "npm install && npm run postinstall && npm run db:setup --prefix server",
-        "setup:demo": "npm install && npm run postinstall && npm run db:reset --prefix server"
+        "setup": "npm install && npm run install:apps && npm run db:setup --prefix server",
+        "setup:demo": "npm install && npm run install:apps && npm run db:reset --prefix server"
     },
     "keywords": [],
     "author": "Harieshwar Jagan Abirami <harieshwarja.official@gmail.com>",
