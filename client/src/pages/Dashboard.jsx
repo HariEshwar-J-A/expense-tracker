@@ -420,6 +420,19 @@ const Dashboard = () => {
     // --- Visual Components ---
 
     const SafeToSpendGauge = ({ safe, budget, periodLabel }) => {
+        // Zero State Handling
+        if (!budget || budget === 0) {
+            return (
+                <Paper elevation={3} sx={{ p: 3, borderRadius: 4, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <AttachMoney sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
+                    <Typography variant="h6" color="text.secondary">No Budget Set</Typography>
+                    <Typography variant="body2" color="text.disabled" align="center">
+                        Set a budget to see your Safe-to-Spend limit.
+                    </Typography>
+                </Paper>
+            );
+        }
+
         const percentage = Math.min(100, Math.max(0, (safe / budget) * 100));
         const color = percentage < 20 ? "#ff4d4d" : percentage < 50 ? "#ff9800" : "#00e676";
 
@@ -464,6 +477,19 @@ const Dashboard = () => {
     };
 
     const VelocityWidget = ({ velocity, budget, totalSpent, daysInPeriod, currentDay, periodLabel }) => {
+        // Zero State Handling
+        if (!budget || budget === 0) {
+            return (
+                <Paper elevation={3} sx={{ p: 3, borderRadius: 4, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                    <ShowChart sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
+                    <Typography variant="h6" color="text.secondary">No Velocity Data</Typography>
+                    <Typography variant="body2" color="text.disabled" align="center">
+                        Add a budget to track your spending speed.
+                    </Typography>
+                </Paper>
+            );
+        }
+
         const percentUsed = Math.min(100, (totalSpent / budget) * 100);
         const percentTime = Math.min(100, (currentDay / daysInPeriod) * 100);
 
@@ -638,23 +664,21 @@ const Dashboard = () => {
             </Box>
 
             {/* Top Row: Persistent Analytics Widgets */}
-            {user?.monthlyBudget > 0 && (
-                <Grid container spacing={3} sx={{ mb: 4 }}>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <SafeToSpendGauge safe={safeToSpend} budget={effectiveBudget} periodLabel={periodLabel} />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <VelocityWidget
-                            velocity={spendVelocity}
-                            budget={effectiveBudget}
-                            totalSpent={totalSpent}
-                            daysInPeriod={daysInPeriod}
-                            currentDay={currentDay}
-                            periodLabel={periodLabel}
-                        />
-                    </Grid>
+            <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid size={{ xs: 12, md: 6 }}>
+                    <SafeToSpendGauge safe={safeToSpend} budget={effectiveBudget} periodLabel={periodLabel} />
                 </Grid>
-            )}
+                <Grid size={{ xs: 12, md: 6 }}>
+                    <VelocityWidget
+                        velocity={spendVelocity}
+                        budget={effectiveBudget}
+                        totalSpent={totalSpent}
+                        daysInPeriod={daysInPeriod}
+                        currentDay={currentDay}
+                        periodLabel={periodLabel}
+                    />
+                </Grid>
+            </Grid>
 
             {/* Middle Row: Quick Stats Carousel */}
             <Paper
