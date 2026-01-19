@@ -49,7 +49,51 @@ A full-stack expense tracking application with **intelligent PDF receipt parsing
 
 ## ▶️ HOW TO RUN APP
 
-### � Quick Start
+> **📘 NEW:** For detailed setup instructions including single-command setup, environment configuration, and troubleshooting, see **[SETUP.md](./SETUP.md)**
+
+### ⚠️ IMPORTANT: Configure Environment First!
+
+**Before running any setup commands, you MUST create and configure your `.env` file:**
+
+```bash
+cd server
+cp .env.example .env
+```
+
+**Edit `server/.env` and set these required values:**
+
+```env
+# REQUIRED - Change this to a secure random string!
+JWT_SECRET=your-secure-random-secret-change-this-before-running
+
+# Database (SQLite is default - no changes needed)
+DB_TYPE=sqlite
+DB_PATH=./data/expense_tracker.db
+
+# OPTIONAL - Only needed for scanning scanned/image receipts
+OCR_SPACE_API_KEY=your-ocr-api-key-here
+```
+
+> **🔐 Security Warning:** Never use the default `JWT_SECRET` in production! Generate a secure random key:
+> ```bash
+> node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+> ```
+
+---
+
+### ⚡ Quick Start
+
+#### One-Command Setup (Recommended)
+
+```bash
+# Development with demo data
+npm run setup:demo && npm run dev:fresh
+
+# OR Production
+npm run setup && npm run start:fresh
+```
+
+### 🚀 Manual Setup
 
 1. **Install Dependencies** (Root, Client, Server)
    ```bash
@@ -443,9 +487,10 @@ Having issues? Check:
 
 ## 📚 Documentation
 
-- **[Feature Showcase](./docs/marketing_features.md)**: A comprehensive business-level overview of capabilities.
-- **[Technical Architecture & ADRs](./docs/technical_architecture.md)**: Deep dive into engineering decisions (Stack, Database, Parsing).
-- **[Streaming Export Implementation](./docs/streaming_plan.md)**: Architectural plan for implementing unlimited CSV/PDF exports.
-- **[Money Saving Strategies & Roadmap](./docs/money_saving_strategies.md)**: Explore planned features like Smart Budgets, Subscription Detective, and AI Insights designed to help you reduce expenses and maximize savings.
+- **[SETUP.md](./SETUP.md)**: **Complete setup guide** with single-command installations, environment configuration, and troubleshooting
+- **[Feature Showcase](./docs/marketing_features.md)**: A comprehensive business-level overview of capabilities
+- **[Technical Architecture & ADRs](./docs/technical_architecture.md)**: Deep dive into engineering decisions (Stack, Database, Parsing)
+- **[Streaming Export Implementation](./docs/streaming_plan.md)**: Architectural plan for implementing unlimited CSV/PDF exports
+- **[Money Saving Strategies & Roadmap](./docs/money_saving_strategies.md)**: Explore planned features like Smart Budgets, Subscription Detective, and AI Insights designed to help you reduce expenses and maximize savings
 
 **Built with ❤️ using React, Node.js, and OCR.space**

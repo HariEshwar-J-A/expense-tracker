@@ -20,6 +20,7 @@ import {
     Collapse,
     TableSortLabel,
     InputAdornment,
+    Menu,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -116,12 +117,26 @@ const Expenses = () => {
         });
     };
 
-    const handleExportPDF = async () => {
+    const [exportAnchorEl, setExportAnchorEl] = useState(null);
+    const exportOpen = Boolean(exportAnchorEl);
+    const importInputRef = React.useRef(null);
+
+    const handleExportClick = (event) => {
+        setExportAnchorEl(event.currentTarget);
+    };
+
+    const handleExportClose = () => {
+        setExportAnchorEl(null);
+    };
+
+    const handleExport = async (format) => {
+        handleExportClose();
         try {
             const params = {
                 ...filters,
                 ...sortConfig,
                 limit: 100000,
+                format,
             };
 
             const response = await axios.get("/api/expenses/export", {
@@ -129,35 +144,64 @@ const Expenses = () => {
                 responseType: "blob",
             });
 
-            // Explicitly define the PDF type so the browser recognizes it
-            const blob = new Blob([response.data], { type: "application/pdf" });
+            const mimeTypes = {
+                pdf: "application/pdf",
+                csv: "text/csv",
+                json: "application/json",
+            };
+
+            const blob = new Blob([response.data], { type: mimeTypes[format] });
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = url;
 
             const contentDisposition = response.headers["content-disposition"];
-            let filename = `Expenses_${new Date().toISOString().split("T")[0]}.pdf`;
+            let filename = `Expenses_${new Date().toISOString().split("T")[0]}.${format}`;
             if (contentDisposition) {
-                // Robust regex for both quoted and unquoted filenames
                 const filenameMatch = contentDisposition.match(/filename="?([^";]+)"?/);
                 if (filenameMatch && filenameMatch.length === 2) {
                     filename = filenameMatch[1];
                 }
             }
 
-
-
             link.setAttribute("download", filename);
             document.body.appendChild(link);
             link.click();
             link.parentNode.removeChild(link);
 
-            // IMPORTANT: Browsers need a small delay before the URL is revoked
-            // otherwise the download might fail or lose the filename
             setTimeout(() => window.URL.revokeObjectURL(url), 100);
         } catch (error) {
             console.error("Export failed", error);
-            alert("Failed to export PDF");
+            alert(`Failed to export ${format.toUpperCase()}`);
+        }
+    };
+
+    const handleImportClick = () => {
+        importInputRef.current.click();
+    };
+
+    const handleImportFile = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const res = await axios.post("/api/expenses/import", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+
+            alert(`Import Successful!\nTotal: ${res.data.summary.total}\nSuccess: ${res.data.summary.success}\nFailed: ${res.data.summary.failed}`);
+            fetchExpenses();
+        } catch (error) {
+            console.error("Import failed", error);
+            const errorMsg = error.response?.data?.message || "Error importing file";
+            alert(`Import Failed: ${errorMsg}`);
+        } finally {
+            event.target.value = ""; // Reset input
         }
     };
 
@@ -184,9 +228,37 @@ const Expenses = () => {
                     >
                         <FilterListIcon />
                     </IconButton>
-                    <Button variant="outlined" onClick={handleExportPDF}>
-                        Export PDF
+
+                    <Button
+                        variant="outlined"
+                        onClick={handleExportClick}
+                    >
+                        Export
                     </Button>
+                    <Menu
+                        anchorEl={exportAnchorEl}
+                        open={exportOpen}
+                        onClose={handleExportClose}
+                    >
+                        <MenuItem onClick={() => handleExport("pdf")}>Export as PDF</MenuItem>
+                        <MenuItem onClick={() => handleExport("csv")}>Export as CSV</MenuItem>
+                        <MenuItem onClick={() => handleExport("json")}>Export as JSON</MenuItem>
+                    </Menu>
+
+                    <input
+                        type="file"
+                        accept=".csv,application/json"
+                        style={{ display: 'none' }}
+                        ref={importInputRef}
+                        onChange={handleImportFile}
+                    />
+                    <Button
+                        variant="outlined"
+                        onClick={handleImportClick}
+                    >
+                        Import
+                    </Button>
+
                     <Button
                         variant="contained"
                         startIcon={<AddIcon />}

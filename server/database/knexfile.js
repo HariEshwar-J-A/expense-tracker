@@ -22,6 +22,27 @@ module.exports = {
     },
   },
 
+  test: {
+    client: "better-sqlite3",
+    connection: {
+      filename: ":memory:",
+    },
+    useNullAsDefault: true,
+    migrations: {
+      directory: path.join(__dirname, "migrations"),
+      tableName: "knex_migrations",
+    },
+    seeds: {
+      directory: path.join(__dirname, "seeds"),
+    },
+    pool: {
+      afterCreate: (conn, cb) => {
+        conn.pragma("foreign_keys = ON");
+        cb();
+      },
+    },
+  },
+
   production: {
     client: "pg",
     connection: {

@@ -151,13 +151,12 @@ class User {
 
     const { password, ...sanitized } = user;
 
-    // Convert snake_case to camelCase for API response
     return {
       id: sanitized.id,
       email: sanitized.email,
       firstName: sanitized.first_name,
       lastName: sanitized.last_name,
-      monthlyBudget: sanitized.monthly_budget || 0,
+      monthlyBudget: sanitized.monthly_budget ?? 0,
       budgetPeriod: sanitized.budget_period || "monthly",
       createdAt: sanitized.created_at,
       updatedAt: sanitized.updated_at,

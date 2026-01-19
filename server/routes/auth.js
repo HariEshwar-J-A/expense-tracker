@@ -137,7 +137,7 @@ router.get("/me", auth, async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    res.json({ user: User.sanitize(user) });
+    res.json({ user });
   } catch (error) {
     console.error("Session check error:", error);
     res.status(500).json({ message: "Server error" });
