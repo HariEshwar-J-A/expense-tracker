@@ -1,6 +1,6 @@
 const PDFDocument = require("pdfkit");
 
-const generateExpenseReport = (expenses, filters, user, res) => {
+const generateExpenseReport = (expenses, filters, user, res, filename) => {
     // 1. Calculate Statistics
     const totalAmount = expenses.reduce(
         (sum, item) => sum + Number(item.amount),
@@ -11,34 +11,23 @@ const generateExpenseReport = (expenses, filters, user, res) => {
     const amounts = expenses.map((e) => Number(e.amount));
     const maxAmount = count > 0 ? Math.max(...amounts) : 0;
 
-    // Category Breakdown
-    const categoryStats = expenses.reduce((acc, item) => {
-        const cat = item.category || "Uncategorized";
-        if (!acc[cat]) acc[cat] = { count: 0, total: 0 };
-        acc[cat].count++;
-        acc[cat].total += Number(item.amount);
-        return acc;
-    }, {});
+    // ... (rest of logic)
 
-    // 2. Setup Document - bufferPages: true is CRITICAL for accurate "Page X of Y" footers
-    const doc = new PDFDocument({
-        margin: 50,
-        size: "LETTER",
-        bufferPages: true,
-    });
-
-    // Robust Timestamp for Filename (YYYY-MM-DD_HH-mm-ss)
-    const now = new Date();
-    const timestamp = now
-        .toISOString()
-        .replace(/T/, "_")
-        .replace(/\..+/, "")
-        .replace(/:/g, "-");
-    const safeUsername = (user.username || user.email.split("@")[0]).replace(
-        /[^a-zA-Z0-9_-]/g,
-        "_",
-    );
-    const filename = `${safeUsername}_Expenses_${timestamp}.pdf`;
+    // Fallback filename generation if not provided (backward compatibility)
+    if (!filename) {
+        // Robust Timestamp for Filename (YYYY-MM-DD_HH-mm-ss)
+        const now = new Date();
+        const timestamp = now
+            .toISOString()
+            .replace(/T/, "_")
+            .replace(/\..+/, "")
+            .replace(/:/g, "-");
+        const safeUsername = (user.username || user.email.split("@")[0]).replace(
+            /[^a-zA-Z0-9_-]/g,
+            "_",
+        );
+        filename = `${safeUsername}_Expenses_${timestamp}.pdf`;
+    }
 
     // Set Headers
     res.setHeader("Content-Type", "application/pdf");
