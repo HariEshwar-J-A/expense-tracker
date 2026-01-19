@@ -119,6 +119,40 @@ const Expenses = () => {
 
     const [exportAnchorEl, setExportAnchorEl] = useState(null);
     const exportOpen = Boolean(exportAnchorEl);
+
+    // Import Template State
+    const [importHelpAnchor, setImportHelpAnchor] = useState(null);
+
+    const downloadTemplate = (type) => {
+        setImportHelpAnchor(null);
+        let content, filename, mime;
+
+        if (type === 'csv') {
+            content = `Date,Vendor,Category,Amount\n${new Date().toISOString().split('T')[0]},"Example Store","Food",25.50`;
+            filename = 'expense_import_template.csv';
+            mime = 'text/csv';
+        } else {
+            content = JSON.stringify([{
+                date: new Date().toISOString().split('T')[0],
+                vendor: "Example Store",
+                category: "Food",
+                amount: 25.50
+            }], null, 2);
+            filename = 'expense_import_template.json';
+            mime = 'application/json';
+        }
+
+        const blob = new Blob([content], { type: mime });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    };
+
     const importInputRef = React.useRef(null);
 
     const handleExportClick = (event) => {
@@ -252,12 +286,37 @@ const Expenses = () => {
                         ref={importInputRef}
                         onChange={handleImportFile}
                     />
-                    <Button
-                        variant="outlined"
-                        onClick={handleImportClick}
-                    >
-                        Import
-                    </Button>
+
+                    {/* Import Menu Group */}
+                    <Box sx={{ display: 'flex' }}>
+                        <Button
+                            variant="outlined"
+                            onClick={handleImportClick}
+                            sx={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                        >
+                            Import
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            sx={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: 'none', px: 1, minWidth: 'auto' }}
+                            onClick={(e) => setImportHelpAnchor(e.currentTarget)}
+                        >
+                            ?
+                        </Button>
+                        <Menu
+                            anchorEl={importHelpAnchor}
+                            open={Boolean(importHelpAnchor)}
+                            onClose={() => setImportHelpAnchor(null)}
+                        >
+                            <MenuItem disabled>
+                                <Typography variant="caption" color="text.secondary">
+                                    Download Import Template
+                                </Typography>
+                            </MenuItem>
+                            <MenuItem onClick={() => downloadTemplate('csv')}>Download CSV Template</MenuItem>
+                            <MenuItem onClick={() => downloadTemplate('json')}>Download JSON Template</MenuItem>
+                        </Menu>
+                    </Box>
 
                     <Button
                         variant="contained"

@@ -69,6 +69,33 @@ A full-stack expense tracking application with **intelligent PDF receipt parsing
 > - Always review imported data before saving
 > - PDF receipt uploads parse ONE receipt at a time with duplicate detection enabled
 > - Bulk PDF imports are NOT supported to prevent accidental duplicates
+> 
+> ### 📝 Import Data Formats
+> 
+> To ensure successful imports, verify your files match these formats:
+> 
+> **CSV Format:**
+> Requires headers: `Date`, `Vendor`, `Category`, `Amount`
+> ```csv
+> Date,Vendor,Category,Amount
+> 2024-01-31,"Grocery Store","Food",45.50
+> 2024-02-01,"Gas Station","Transport",60.00
+> ```
+> 
+> **JSON Format:**
+> Array of expense objects:
+> ```json
+> [
+>   {
+>     "date": "2024-01-31",
+>     "vendor": "Grocery Store",
+>     "category": "Food",
+>     "amount": 45.50
+>   }
+> ]
+> ```
+> 
+> **Tip:** You can download sample templates directly from the **Import** menu in the app!
 
 ### 💾 Robust Data Layer
 - **Knex.js Integration**: Professional SQL query builder
