@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useId } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -33,6 +33,7 @@ const ExpenseForm = ({ open, handleClose, handleSubmit, initialData }) => {
   });
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
+  const formId = useId();
 
   useEffect(() => {
     if (initialData) {
@@ -170,6 +171,8 @@ const ExpenseForm = ({ open, handleClose, handleSubmit, initialData }) => {
       <form onSubmit={onSubmit}>
         <DialogContent>
           <TextField
+            id={`${formId}-amount`}
+            name="amount"
             margin="dense"
             label="Amount"
             type="number"
@@ -189,6 +192,8 @@ const ExpenseForm = ({ open, handleClose, handleSubmit, initialData }) => {
             }
           />
           <TextField
+            id={`${formId}-vendor`}
+            name="vendor"
             margin="dense"
             label="Vendor"
             type="text"
@@ -201,6 +206,8 @@ const ExpenseForm = ({ open, handleClose, handleSubmit, initialData }) => {
             }
           />
           <TextField
+            id={`${formId}-category`}
+            name="category"
             margin="dense"
             label="Category"
             select
@@ -218,6 +225,8 @@ const ExpenseForm = ({ open, handleClose, handleSubmit, initialData }) => {
             ))}
           </TextField>
           <TextField
+            id={`${formId}-date`}
+            name="date"
             margin="dense"
             label="Date"
             type="date"

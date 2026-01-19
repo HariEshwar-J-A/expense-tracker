@@ -10,14 +10,12 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useThemeContext } from "../context/ThemeContext";
-import {
-  Dashboard as DashboardIcon,
-  Receipt as ReceiptIcon,
-  Logout as LogoutIcon,
-  Settings as SettingsIcon,
-  LightMode as LightModeIcon,
-  DarkMode as DarkModeIcon,
-} from "@mui/icons-material";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import ReceiptIcon from "@mui/icons-material/Receipt";
+import LogoutIcon from "@mui/icons-material/Logout";
+import SettingsIcon from "@mui/icons-material/Settings";
+import LightModeIcon from "@mui/icons-material/LightMode";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
 
 const Layout = ({ children }) => {
   const { logout } = useAuth();
@@ -27,6 +25,37 @@ const Layout = ({ children }) => {
 
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      {/* Skip Link for Accessibility */}
+      <a
+        href="#main-content"
+        style={{
+          position: "absolute",
+          top: "-9999px",
+          left: "-9999px",
+          width: "1px",
+          height: "1px",
+          overflow: "hidden",
+          zIndex: 9999,
+          padding: "1rem",
+          background: "var(--mui-palette-background-paper)",
+          color: "var(--mui-palette-primary-main)",
+          textDecoration: "none",
+        }}
+        onFocus={(e) => {
+          e.target.style.top = "0";
+          e.target.style.left = "0";
+          e.target.style.width = "auto";
+          e.target.style.height = "auto";
+        }}
+        onBlur={(e) => {
+          e.target.style.top = "-9999px";
+          e.target.style.left = "-9999px";
+          e.target.style.width = "1px";
+          e.target.style.height = "1px";
+        }}
+      >
+        Skip to main content
+      </a>
       <AppBar
         position="sticky"
         color="inherit"
@@ -97,19 +126,26 @@ const Layout = ({ children }) => {
               <IconButton
                 onClick={toggleColorMode}
                 color="inherit"
+                aria-label="Toggle color mode"
                 sx={{ mr: 1 }}
               >
                 {mode === "dark" ? <LightModeIcon /> : <DarkModeIcon />}
               </IconButton>
 
-              <IconButton onClick={logout} color="primary">
+              <IconButton onClick={logout} color="primary" aria-label="Logout">
                 <LogoutIcon />
               </IconButton>
             </Box>
           </Toolbar>
         </Container>
       </AppBar>
-      <Container maxWidth="lg" sx={{ flexGrow: 1, py: 4 }}>
+      <Container
+        id="main-content"
+        maxWidth="lg"
+        component="main"
+        sx={{ flexGrow: 1, py: 4, outline: "none" }}
+        tabIndex={-1}
+      >
         {children}
       </Container>
       <Box
@@ -125,7 +161,7 @@ const Layout = ({ children }) => {
           textAlign: "center",
         }}
       >
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" color="text.primary">
           © {new Date().getFullYear()} Harieshwar Jagan Abirami. All rights
           reserved.
         </Typography>

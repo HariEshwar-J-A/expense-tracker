@@ -19,7 +19,12 @@ import { useAuth } from "../context/AuthContext";
 import { useThemeContext } from "../context/ThemeContext";
 import axios from "axios";
 import * as d3 from "d3";
-import { AttachMoney, ShowChart, Category, Store, CalendarMonth, CalendarToday } from "@mui/icons-material";
+import AttachMoney from "@mui/icons-material/AttachMoney";
+import ShowChart from "@mui/icons-material/ShowChart";
+import Category from "@mui/icons-material/Category";
+import Store from "@mui/icons-material/Store";
+import CalendarMonth from "@mui/icons-material/CalendarMonth";
+import CalendarToday from "@mui/icons-material/CalendarToday";
 import { ToggleButton, ToggleButtonGroup } from "@mui/material";
 
 const Dashboard = () => {
@@ -100,10 +105,9 @@ const Dashboard = () => {
         const svg = d3.select(pieRef.current);
         svg.selectAll("*").remove();
 
-        // Significantly increased width to accommodate long labels (e.g. "Entertainment")
-        const width = 500;
-        const height = 350;
-        const margin = 40;
+        const width = 700;
+        const height = 600;
+        const margin = 50;
         const radius = Math.min(width, height) / 2 - margin;
 
         const g = svg
@@ -196,23 +200,49 @@ const Dashboard = () => {
                 };
             });
 
-        // Smart Labels
+        // --- Label Spacing & Collision Avoidance ---
+        // 1. Calculate nominal positions
+        const labels = data_ready.map(d => {
+            const pos = outerArc.centroid(d);
+            const midAngle = d.startAngle + (d.endAngle - d.startAngle) / 2;
+            pos[0] = radius * 1.05 * (midAngle < Math.PI ? 1 : -1);
+            return { d, pos, midAngle };
+        });
+
+        // 2. Separate into left/right groups for sorting
+        const rightLabels = labels.filter(l => l.midAngle < Math.PI);
+        const leftLabels = labels.filter(l => l.midAngle >= Math.PI);
+
+        // 3. Spacing Logic
+        const LABEL_HEIGHT = 20; // Minimum vertical gap pixels
+        const relax = (group) => {
+            // Sort by Y position
+            group.sort((a, b) => a.pos[1] - b.pos[1]);
+
+            // Push overlapping labels apart
+            for (let i = 0; i < group.length; i++) {
+                if (i > 0) {
+                    const prev = group[i - 1];
+                    const curr = group[i];
+                    if (curr.pos[1] - prev.pos[1] < LABEL_HEIGHT) {
+                        // Push current label down
+                        curr.pos[1] = prev.pos[1] + LABEL_HEIGHT;
+                    }
+                }
+            }
+        }
+
+        relax(rightLabels);
+        relax(leftLabels);
+
+        // Draw Labels
         g.selectAll("text")
-            .data(data_ready)
+            .data(labels)
             .enter()
             .append("text")
-            .text((d) => d.data[0])
-            .attr("transform", (d) => {
-                const pos = outerArc.centroid(d);
-                const midAngle = d.startAngle + (d.endAngle - d.startAngle) / 2;
-                // Push labels out slightly based on angle to avoid overlap
-                pos[0] = radius * 1.05 * (midAngle < Math.PI ? 1 : -1);
-                return `translate(${pos})`;
-            })
-            .style("text-anchor", (d) => {
-                const midAngle = d.startAngle + (d.endAngle - d.startAngle) / 2;
-                return midAngle < Math.PI ? "start" : "end";
-            })
+            .text(l => l.d.data[0])
+            .attr("transform", l => `translate(${l.pos})`)
+            .style("text-anchor", l => (l.midAngle < Math.PI ? "start" : "end"))
             .style("font-size", "12px")
             .style("fill", theme.palette.text.primary)
             .style("opacity", 0)
@@ -221,20 +251,24 @@ const Dashboard = () => {
             .duration(500)
             .style("opacity", 1);
 
-        // Lines connecting slices to labels
+        // Draw Polylines
         g.selectAll("polyline")
-            .data(data_ready)
+            .data(labels)
             .enter()
             .append("polyline")
             .attr("stroke", theme.palette.text.secondary)
             .style("fill", "none")
             .attr("stroke-width", 1)
-            .attr("points", (d) => {
-                const posA = arc.centroid(d); // Line start: center of slice
-                const posB = outerArc.centroid(d); // Line break: outer arc
-                const midAngle = d.startAngle + (d.endAngle - d.startAngle) / 2;
-                const posC = outerArc.centroid(d); // Line end: near label
-                posC[0] = radius * 0.95 * (midAngle < Math.PI ? 1 : -1);
+            .attr("points", l => {
+                const posA = arc.centroid(l.d);
+                const posB = outerArc.centroid(l.d);
+                const posC = [...l.pos]; // Use calculated position
+
+                // Adjust elbow to ensure the horizontal line connects cleanly
+                // We keep posB on the arc, so the line B->C might slant if C was pushed down.
+                // This is acceptable to prevent overlap.
+                posC[0] = radius * 0.95 * (l.midAngle < Math.PI ? 1 : -1);
+
                 return [posA, posB, posC];
             })
             .style("opacity", 0)
@@ -386,13 +420,26 @@ const Dashboard = () => {
     // --- Visual Components ---
 
     const SafeToSpendGauge = ({ safe, budget, periodLabel }) => {
+        // Zero State Handling
+        if (!budget || budget === 0) {
+            return (
+                <Paper elevation={3} sx={{ p: 3, borderRadius: 4, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <AttachMoney sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
+                    <Typography variant="h6" color="text.secondary">No Budget Set</Typography>
+                    <Typography variant="body2" color="text.disabled" align="center">
+                        Set a budget to see your Safe-to-Spend limit.
+                    </Typography>
+                </Paper>
+            );
+        }
+
         const percentage = Math.min(100, Math.max(0, (safe / budget) * 100));
         const color = percentage < 20 ? "#ff4d4d" : percentage < 50 ? "#ff9800" : "#00e676";
 
         // Simple Semi-Circle Gauge using CSS/SVG
         return (
             <Paper elevation={3} sx={{ p: 3, borderRadius: 4, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                <Typography variant="h6" color="text.secondary" gutterBottom>
+                <Typography variant="h2" fontSize="1.5rem" color="text.primary" gutterBottom>
                     Safe to Spend
                 </Typography>
                 <Box sx={{ position: 'relative', width: 200, height: 100, overflow: 'hidden', mb: 2 }}>
@@ -430,14 +477,27 @@ const Dashboard = () => {
     };
 
     const VelocityWidget = ({ velocity, budget, totalSpent, daysInPeriod, currentDay, periodLabel }) => {
+        // Zero State Handling
+        if (!budget || budget === 0) {
+            return (
+                <Paper elevation={3} sx={{ p: 3, borderRadius: 4, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                    <ShowChart sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
+                    <Typography variant="h6" color="text.secondary">No Velocity Data</Typography>
+                    <Typography variant="body2" color="text.disabled" align="center">
+                        Add a budget to track your spending speed.
+                    </Typography>
+                </Paper>
+            );
+        }
+
         const percentUsed = Math.min(100, (totalSpent / budget) * 100);
         const percentTime = Math.min(100, (currentDay / daysInPeriod) * 100);
 
         return (
             <Paper elevation={3} sx={{ p: 3, borderRadius: 4, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                    <Typography variant="h6" color="text.secondary">Spending Velocity</Typography>
-                    <Typography variant="h6" fontWeight="bold" color={velocity > budget ? "error.main" : "success.main"}>
+                    <Typography variant="h2" fontSize="1.5rem" color="text.primary">Spending Velocity</Typography>
+                    <Typography variant="h3" fontSize="1.25rem" fontWeight="bold" color={velocity > budget ? "error.main" : "success.main"}>
                         {velocity > budget ? "Trending High" : "On Track"}
                     </Typography>
                 </Box>
@@ -565,53 +625,60 @@ const Dashboard = () => {
 
     return (
         <Box sx={{ pb: 4 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h4" fontWeight="bold">
+            <Box sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 2,
+                mb: 3
+            }}>
+                <Typography variant="h1" fontSize="2.5rem" fontWeight="bold">
                     Dashboard
                 </Typography>
-                <Button
-                    variant="outlined"
-                    onClick={() => setOpenBudgetDialog(true)}
-                    startIcon={<AttachMoney />}
-                    sx={{ mr: 2 }}
-                >
-                    {user?.monthlyBudget > 0 ? "Edit Budget" : "Set Budget"}
-                </Button>
 
-                <ToggleButtonGroup
-                    value={period}
-                    exclusive
-                    onChange={handlePeriodChange}
-                    aria-label="budget period"
-                    size="small"
-                >
-                    <ToggleButton value="monthly" aria-label="monthly">
-                        <CalendarMonth sx={{ mr: 1 }} /> Month
-                    </ToggleButton>
-                    <ToggleButton value="yearly" aria-label="yearly">
-                        <CalendarToday sx={{ mr: 1 }} /> Year
-                    </ToggleButton>
-                </ToggleButtonGroup>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                    <Button
+                        variant="outlined"
+                        onClick={() => setOpenBudgetDialog(true)}
+                        startIcon={<AttachMoney />}
+                    >
+                        {user?.monthlyBudget > 0 ? "Edit Budget" : "Set Budget"}
+                    </Button>
+
+                    <ToggleButtonGroup
+                        value={period}
+                        exclusive
+                        onChange={handlePeriodChange}
+                        aria-label="budget period"
+                        size="small"
+                    >
+                        <ToggleButton value="monthly" aria-label="monthly">
+                            <CalendarMonth sx={{ mr: 1 }} /> Month
+                        </ToggleButton>
+                        <ToggleButton value="yearly" aria-label="yearly">
+                            <CalendarToday sx={{ mr: 1 }} /> Year
+                        </ToggleButton>
+                    </ToggleButtonGroup>
+                </Box>
             </Box>
 
             {/* Top Row: Persistent Analytics Widgets */}
-            {user?.monthlyBudget > 0 && (
-                <Grid container spacing={3} sx={{ mb: 4 }}>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <SafeToSpendGauge safe={safeToSpend} budget={effectiveBudget} periodLabel={periodLabel} />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <VelocityWidget
-                            velocity={spendVelocity}
-                            budget={effectiveBudget}
-                            totalSpent={totalSpent}
-                            daysInPeriod={daysInPeriod}
-                            currentDay={currentDay}
-                            periodLabel={periodLabel}
-                        />
-                    </Grid>
+            <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid size={{ xs: 12, md: 6 }}>
+                    <SafeToSpendGauge safe={safeToSpend} budget={effectiveBudget} periodLabel={periodLabel} />
                 </Grid>
-            )}
+                <Grid size={{ xs: 12, md: 6 }}>
+                    <VelocityWidget
+                        velocity={spendVelocity}
+                        budget={effectiveBudget}
+                        totalSpent={totalSpent}
+                        daysInPeriod={daysInPeriod}
+                        currentDay={currentDay}
+                        periodLabel={periodLabel}
+                    />
+                </Grid>
+            </Grid>
 
             {/* Middle Row: Quick Stats Carousel */}
             <Paper
@@ -717,11 +784,12 @@ const Dashboard = () => {
                             display: "flex",
                             flexDirection: "column",
                             alignItems: "center",
+                            height: "100%",
                             minHeight: 400,
                             borderRadius: 4
                         }}
                     >
-                        <Typography variant="h6" gutterBottom>
+                        <Typography variant="h2" fontSize="1.5rem" gutterBottom>
                             Spending by Category
                         </Typography>
                         <svg ref={pieRef}></svg>
@@ -734,11 +802,12 @@ const Dashboard = () => {
                             display: "flex",
                             flexDirection: "column",
                             alignItems: "center",
+                            height: "100%",
                             minHeight: 400,
                             borderRadius: 4
                         }}
                     >
-                        <Typography variant="h6" gutterBottom>
+                        <Typography variant="h2" fontSize="1.5rem" gutterBottom>
                             Monthly Trends (Last 6 Months)
                         </Typography>
                         <svg ref={barRef} style={{ width: "100%", height: "auto" }}></svg>

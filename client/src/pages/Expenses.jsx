@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useId } from "react";
 import {
     Box,
     Typography,
@@ -21,12 +21,10 @@ import {
     TableSortLabel,
     InputAdornment,
 } from "@mui/material";
-import {
-    Edit as EditIcon,
-    Delete as DeleteIcon,
-    Add as AddIcon,
-    FilterList as FilterListIcon,
-} from "@mui/icons-material";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
+import FilterListIcon from "@mui/icons-material/FilterList";
 import axios from "axios";
 import ExpenseForm from "../components/ExpenseForm";
 import { formatDateForDisplay } from "../utils/dateHelpers";
@@ -51,6 +49,7 @@ const Expenses = () => {
         order: "desc",
     });
     const [showFilters, setShowFilters] = useState(false);
+    const filterId = useId();
 
     const [openForm, setOpenForm] = useState(false);
     const [editingExpense, setEditingExpense] = useState(null);
@@ -174,13 +173,14 @@ const Expenses = () => {
                     mb: 3,
                 }}
             >
-                <Typography variant="h4" fontWeight="bold">
+                <Typography variant="h1" fontSize="2.5rem" fontWeight="bold">
                     Expenses
                 </Typography>
                 <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                     <IconButton
                         onClick={() => setShowFilters(!showFilters)}
                         color={showFilters ? "primary" : "default"}
+                        aria-label="Toggle filters"
                     >
                         <FilterListIcon />
                     </IconButton>
@@ -211,8 +211,10 @@ const Expenses = () => {
                         }}
                     >
                         <FormControl size="small" sx={{ minWidth: 120 }}>
-                            <InputLabel>Category</InputLabel>
+                            <InputLabel id={`${filterId}-category-label`}>Category</InputLabel>
                             <Select
+                                labelId={`${filterId}-category-label`}
+                                id={`${filterId}-category-select`}
                                 value={filters.category}
                                 label="Category"
                                 onChange={(e) =>
@@ -235,6 +237,8 @@ const Expenses = () => {
                             </Select>
                         </FormControl>
                         <TextField
+                            id={`${filterId}-start-date`}
+                            name="startDate"
                             label="Start Date"
                             type="date"
                             size="small"
@@ -245,6 +249,8 @@ const Expenses = () => {
                             }
                         />
                         <TextField
+                            id={`${filterId}-end-date`}
+                            name="endDate"
                             label="End Date"
                             type="date"
                             size="small"
@@ -255,6 +261,8 @@ const Expenses = () => {
                             }
                         />
                         <TextField
+                            id={`${filterId}-min-amount`}
+                            name="minAmount"
                             label="Min Amount"
                             type="number"
                             size="small"
@@ -273,6 +281,8 @@ const Expenses = () => {
                             sx={{ width: 120 }}
                         />
                         <TextField
+                            id={`${filterId}-max-amount`}
+                            name="maxAmount"
                             label="Max Amount"
                             type="number"
                             size="small"
@@ -369,6 +379,7 @@ const Expenses = () => {
                                             size="small"
                                             onClick={() => openEdit(expense)}
                                             color="primary"
+                                            aria-label="Edit expense"
                                         >
                                             <EditIcon />
                                         </IconButton>
@@ -376,6 +387,7 @@ const Expenses = () => {
                                             size="small"
                                             onClick={() => handleDelete(expense.id)}
                                             color="error"
+                                            aria-label="Delete expense"
                                         >
                                             <DeleteIcon />
                                         </IconButton>

@@ -443,6 +443,8 @@ Having issues? Check:
 
 ## 📚 Documentation
 
+- **[Feature Showcase](./docs/marketing_features.md)**: A comprehensive business-level overview of capabilities.
+- **[Technical Architecture & ADRs](./docs/technical_architecture.md)**: Deep dive into engineering decisions (Stack, Database, Parsing).
 - **[Streaming Export Implementation](./docs/streaming_plan.md)**: Architectural plan for implementing unlimited CSV/PDF exports.
 - **[Money Saving Strategies & Roadmap](./docs/money_saving_strategies.md)**: Explore planned features like Smart Budgets, Subscription Detective, and AI Insights designed to help you reduce expenses and maximize savings.
 
