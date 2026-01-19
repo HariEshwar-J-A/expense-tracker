@@ -171,7 +171,7 @@ const ExpenseForm = ({ open, handleClose, handleSubmit, initialData }) => {
             <>
               <input
                 type="file"
-                accept="application/pdf"
+                accept="application/pdf,image/png,image/jpeg,image/jpg"
                 hidden
                 ref={fileInputRef}
                 onChange={handleFileChange}

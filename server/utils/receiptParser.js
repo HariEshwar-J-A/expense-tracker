@@ -210,11 +210,12 @@ const parseText = (text) => {
 };
 
 /**
- * Extract text from PDF using OCR.space API
- * @param {Buffer} buffer - PDF file buffer
+ * Extract text from PDF or Image using OCR.space API
+ * @param {Buffer} buffer - File buffer
+ * @param {string} [mimeType="application/pdf"] - Mime type of the file
  * @returns {Promise<string>} Extracted text
  */
-const parseWithOCR = async (buffer) => {
+const parseWithOCR = async (buffer, mimeType = "application/pdf") => {
 
 
   const apiKey = process.env.OCR_SPACE_API_KEY;
@@ -225,7 +226,7 @@ const parseWithOCR = async (buffer) => {
   try {
     // Convert buffer to base64
     const base64 = buffer.toString("base64");
-    const base64String = `data:application/pdf;base64,${base64}`;
+    const base64String = `data:${mimeType};base64,${base64}`;
 
     // Prepare form data
     const formData = new FormData();
@@ -259,7 +260,7 @@ const parseWithOCR = async (buffer) => {
       !response.data.ParsedResults ||
       response.data.ParsedResults.length === 0
     ) {
-      throw new Error("No text found in PDF by OCR");
+      throw new Error("No text found in file by OCR");
     }
 
     const extractedText = response.data.ParsedResults[0].ParsedText || "";
@@ -283,34 +284,39 @@ const parseWithOCR = async (buffer) => {
 
 /**
  * Main receipt parsing function with intelligent fallback
- * @param {Buffer} buffer - PDF file buffer
+ * @param {Buffer} buffer - File buffer
+ * @param {string} [mimeType] - Optional mime type if known (e.g. from multer)
  * @returns {Promise<object>} Parsed receipt data
  */
-const parseReceipt = async (buffer) => {
+const parseReceipt = async (buffer, mimeType) => {
   try {
+    let text = "";
 
+    // Helper to detect if buffer is likely PDF
+    const isPdf = (buf) => {
+      // PDF signature is %PDF- at the start
+      return buf.slice(0, 4).toString() === "%PDF";
+    };
 
-    // STEP 1: Try pdf-parse first (fast, free, no API calls)
-    // STEP 1: Try pdf-parse first (fast, free, no API calls)
-    const data = await pdf(buffer);
-    const text = data.text;
-
-
-
-    // STEP 2: Check if we got meaningful text
-    const MIN_TEXT_LENGTH = 50; // Threshold for meaningful text
-
-    if (text.length >= MIN_TEXT_LENGTH) {
-
-
-      const result = parseText(text);
-
-
-
-      return result;
+    if (isPdf(buffer)) {
+      // STEP 1: Try pdf-parse first for PDFs (fast, free, no API calls)
+      try {
+        const data = await pdf(buffer);
+        text = data.text;
+      } catch (pdfError) {
+        console.warn("pdf-parse failed, falling back to OCR", pdfError.message);
+      }
     }
 
-    // STEP 3: Fallback to OCR if text is insufficient
+    // Checking if we got meaningful text from pdf-parse
+    const MIN_TEXT_LENGTH = 50;
+
+    // If it was a clean PDF parse, use it.
+    if (text.length >= MIN_TEXT_LENGTH) {
+      return parseText(text);
+    }
+
+    // STEP 2: Fallback to OCR (for images or scanned PDFs)
     if (!process.env.OCR_SPACE_API_KEY) {
       return {
         vendor: null,
@@ -318,19 +324,25 @@ const parseReceipt = async (buffer) => {
         amount: null,
         category: "Other",
         error:
-          "Scanned PDF detected but OCR not configured. Get API key at https://ocr.space/ocrapi",
+          "File detected but OCR not configured. Get API key at https://ocr.space/ocrapi",
       };
     }
 
+    // Determine mime type if not provided
+    if (!mimeType) {
+      if (isPdf(buffer)) mimeType = "application/pdf";
+      else mimeType = "image/png"; // Default to png for images if unknown, OCR API is usually lenient
+    }
+
     // Use OCR.space API
-    const ocrText = await parseWithOCR(buffer);
+    const ocrText = await parseWithOCR(buffer, mimeType);
     const result = parseText(ocrText);
 
     return result;
   } catch (error) {
-    console.error("\n❌ PDF Parse Error:", error.message);
+    console.error("\n❌ Parse Error:", error.message);
     console.error("Stack:", error.stack);
-    throw new Error(`Failed to parse PDF: ${error.message}`);
+    throw new Error(`Failed to parse receipt: ${error.message}`);
   }
 };
 

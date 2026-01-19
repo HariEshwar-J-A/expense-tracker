@@ -18,7 +18,7 @@ router.post("/parse", auth, upload.single("receipt"), async (req, res) => {
             return res.status(400).json({ message: "No file uploaded" });
         }
 
-        const parsedData = await parseReceipt(req.file.buffer);
+        const parsedData = await parseReceipt(req.file.buffer, req.file.mimetype);
 
         // Check for duplicates if we have valid data
         if (parsedData.amount && parsedData.date && parsedData.vendor) {
