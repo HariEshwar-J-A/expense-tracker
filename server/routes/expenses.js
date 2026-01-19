@@ -49,8 +49,8 @@ router.post("/parse", auth, upload.single("receipt"), async (req, res) => {
 router.get("/stats", auth, async (req, res) => {
     try {
         const userId = req.user.id;
-        const { period } = req.query; // 'monthly' or 'yearly'
-        const stats = await Expense.getStats(userId, period);
+        const { period, startDate, endDate } = req.query; // 'monthly' or 'yearly', plus custom dates
+        const stats = await Expense.getStats(userId, period, startDate, endDate);
 
         res.json(stats);
     } catch (error) {

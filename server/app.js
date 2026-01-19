@@ -24,6 +24,7 @@ const path = require("path");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/expenses", expenseRoutes);
+app.use("/api/budgets", require("./routes/budgets"));
 
 // Serve static assets in production
 if (process.env.NODE_ENV === "production") {

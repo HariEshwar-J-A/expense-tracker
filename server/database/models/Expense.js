@@ -172,27 +172,37 @@ class Expense {
    * @param {string} userId - User ID
    * @returns {Promise<Object>} Statistics
    */
-  static async getStats(userId, period = 'monthly') {
+  static async getStats(userId, period = 'monthly', customStartDate = null, customEndDate = null) {
     const adapter = getAdapter();
     const db = adapter.getConnection();
 
     // Determine Date Range
-    const now = new Date();
-    let startDate;
+    let startDateStr, endDateStr;
 
-    if (period === 'yearly') {
-      // Start of current year
-      startDate = new Date(now.getFullYear(), 0, 1);
+    if (customStartDate && customEndDate) {
+      // Use provided range (Frontend controls time travel)
+      startDateStr = customStartDate;
+      endDateStr = customEndDate;
     } else {
-      // Default to monthly: Start of current month
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      // Fallback: Default relative logic
+      const now = new Date();
+      let startDate;
+      if (period === 'yearly') {
+        startDate = new Date(now.getFullYear(), 0, 1);
+      } else {
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      }
+      startDateStr = startDate.toISOString().split('T')[0];
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      endDateStr = tomorrow.toISOString().split('T')[0];
     }
-    const startDateStr = startDate.toISOString().split('T')[0];
 
     // Total expenses (Filtered by Period)
     const [totalResult] = await db("expenses")
       .where({ user_id: userId })
       .where("date", ">=", startDateStr)
+      .where("date", "<=", endDateStr)
       .sum("amount as total")
       .count("* as count");
 
@@ -200,6 +210,7 @@ class Expense {
     const byCategory = await db("expenses")
       .where({ user_id: userId })
       .where("date", ">=", startDateStr)
+      .where("date", "<=", endDateStr)
       .select("category")
       .sum("amount as total")
       .count("* as count")
@@ -216,23 +227,85 @@ class Expense {
       .sum("amount as total")
       .count("* as count");
 
-    // Monthly trend (Last 6 Months - Always useful for context)
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    // Trend: Daily for Monthly view, Monthly for Yearly view
+    let trend;
 
-    const monthlyTrend = await db("expenses")
-      .where({ user_id: userId })
-      .where("date", ">=", sixMonthsAgo.toISOString().split("T")[0])
-      .select(db.raw(`strftime('%Y-%m', date) as month`))
-      .sum("amount as total")
-      .count("* as count")
-      .groupBy("month")
-      .orderBy("month", "asc");
+    if (period === 'yearly') {
+      // Group by Month (YYYY-MM)
+      trend = await db("expenses")
+        .where({ user_id: userId })
+        .where("date", ">=", startDateStr)
+        .where("date", "<=", endDateStr)
+        .select(db.raw(`strftime('%Y-%m', date) as label`))
+        .sum("amount as total")
+        .groupBy("label")
+        .orderBy("label", "asc");
+    } else {
+      // Group by Week (Custom logic for "Monthly View")
+      // 1. Fetch all raw daily data first
+      const dailyData = await db("expenses")
+        .where({ user_id: userId })
+        .where("date", ">=", startDateStr)
+        .where("date", "<=", endDateStr)
+        .select("date")
+        .sum("amount as total")
+        .groupBy("date")
+        .orderBy("date", "asc");
+
+      // 2. Helper to format date as "MMM DD"
+      const formatDate = (dateObj) => {
+        return dateObj.toLocaleString('en-US', { month: 'short', day: '2-digit' });
+      };
+
+      // 3. Bucket into weeks (1-7, 8-14, 15-21, 22-28, 29-End)
+      // Extract Year/Month from startDateStr (YYYY-MM-DD) explicitly
+      const [startYear, startMonthVal, startDayVal] = startDateStr.split('-').map(Number);
+      const year = startYear;
+      const month = startMonthVal - 1; // JS Month is 0-indexed
+      const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+
+      // Define 7-day chunks
+      const ranges = [
+        { start: 1, end: 7 },
+        { start: 8, end: 14 },
+        { start: 15, end: 21 },
+        { start: 22, end: 28 },
+        { start: 29, end: lastDayOfMonth }
+      ];
+
+      trend = ranges.map(r => {
+        if (r.start > lastDayOfMonth) return null; // Skip if month is shorter (e.g. Feb 30)
+
+        // Ensure end doesn't exceed month length
+        const currentEnd = Math.min(r.end, lastDayOfMonth);
+
+        // Create Label "Jan 01 - Jan 07"
+        const sDate = new Date(year, month, r.start);
+        const eDate = new Date(year, month, currentEnd);
+        const label = `${formatDate(sDate)} - ${formatDate(eDate)}`;
+
+        // Sum totals for days in this range
+        let weekTotal = 0;
+        dailyData.forEach(d => {
+          const dDate = new Date(d.date);
+          const dayNum = dDate.getDate();
+          if (dDate.getMonth() === month && dayNum >= r.start && dayNum <= currentEnd) {
+            weekTotal += parseFloat(d.total);
+          }
+        });
+
+        return {
+          label: label,
+          total: weekTotal
+        };
+      }).filter(Boolean); // Remove nulls
+    }
 
     // Top vendor (Filtered by Period)
     const topVendorResult = await db("expenses")
       .where({ user_id: userId })
       .where("date", ">=", startDateStr)
+      .where("date", "<=", endDateStr)
       .select("vendor")
       .sum("amount as total")
       .groupBy("vendor")
@@ -265,10 +338,9 @@ class Expense {
         amount: parseFloat(recentResult.total || 0).toFixed(2),
         count: parseInt(recentResult.count || 0),
       },
-      monthlyTrend: monthlyTrend.map((month) => ({
-        month: month.month,
-        total: parseFloat(month.total).toFixed(2),
-        count: parseInt(month.count),
+      trend: trend.map((t) => ({
+        label: t.label,
+        total: parseFloat(t.total).toFixed(2),
       })),
       topVendor: topVendor,
     };

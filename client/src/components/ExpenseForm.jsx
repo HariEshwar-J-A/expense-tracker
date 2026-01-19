@@ -21,6 +21,9 @@ const CATEGORIES = [
   "Utilities",
   "Entertainment",
   "Health",
+  "Housing",
+  "Education",
+  "Shopping",
   "Other",
 ];
 
