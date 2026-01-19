@@ -15,6 +15,10 @@ import {
     IconButton,
     Tooltip,
     Alert,
+    Select,
+    MenuItem,
+    FormControl,
+    InputLabel,
 } from "@mui/material";
 import { useAuth } from "../context/AuthContext";
 import { useThemeContext } from "../context/ThemeContext";
@@ -45,6 +49,7 @@ import CalendarToday from "@mui/icons-material/CalendarToday";
 import { ToggleButton, ToggleButtonGroup } from "@mui/material";
 import BudgetManager from "../components/BudgetManager";
 import BudgetProgressWidget from "../components/BudgetProgressWidget";
+import BudgetHistoryWidget from "../components/BudgetHistoryWidget";
 
 const Dashboard = () => {
     const theme = useTheme();
@@ -604,6 +609,7 @@ const Dashboard = () => {
     // --- NEW: Budget & Analytics Logic ---
     const [openBudgetDialog, setOpenBudgetDialog] = useState(false);
     const [budgetInput, setBudgetInput] = useState("");
+    const [budgetReason, setBudgetReason] = useState("");
     const [activeSlide, setActiveSlide] = useState(0);
     const budgetInitialized = useRef(false);
 
@@ -623,8 +629,12 @@ const Dashboard = () => {
     const handleSaveBudget = async () => {
         const amount = parseFloat(budgetInput);
         if (amount > 0 && amount <= 500000) {
-            await updateUser({ monthlyBudget: amount });
+            await updateUser({
+                monthlyBudget: amount,
+                budgetReason: budgetReason || null
+            });
             setOpenBudgetDialog(false);
+            setBudgetReason(""); // Reset reason after save
         }
     };
 
@@ -861,6 +871,13 @@ const Dashboard = () => {
                 </Grid>
             </Grid>
 
+            {/* Budget History Row */}
+            <Grid container spacing={3} sx={{ mb: 3 }}>
+                <Grid size={{ xs: 12, md: 6 }}>
+                    <BudgetHistoryWidget />
+                </Grid>
+            </Grid>
+
             {/* Top Row: Persistent Analytics Widgets */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
                 <Grid size={{ xs: 12, md: 6 }}>
@@ -999,6 +1016,28 @@ const Dashboard = () => {
                                     }}
                                     helperText="Enter amount between $0 - $500,000"
                                 />
+
+                                {/* Optional Reason Field */}
+                                <FormControl fullWidth margin="dense" sx={{ mt: 2 }}>
+                                    <InputLabel id="budget-reason-label">Reason (Optional)</InputLabel>
+                                    <Select
+                                        labelId="budget-reason-label"
+                                        value={budgetReason}
+                                        label="Reason (Optional)"
+                                        onChange={(e) => setBudgetReason(e.target.value)}
+                                    >
+                                        <MenuItem value="">
+                                            <em>None</em>
+                                        </MenuItem>
+                                        <MenuItem value="Salary Increase">Salary Increase</MenuItem>
+                                        <MenuItem value="Bonus/Commission">Bonus/Commission</MenuItem>
+                                        <MenuItem value="Job Change">Job Change</MenuItem>
+                                        <MenuItem value="Freelance Income">Freelance Income</MenuItem>
+                                        <MenuItem value="Income Reduction">Income Reduction</MenuItem>
+                                        <MenuItem value="Budget Adjustment">Budget Adjustment</MenuItem>
+                                        <MenuItem value="Other">Other</MenuItem>
+                                    </Select>
+                                </FormControl>
                             </>
                         );
                     })()}

@@ -19,12 +19,15 @@ app.use(morgan("dev"));
 
 const authRoutes = require("./routes/auth");
 const expenseRoutes = require("./routes/expenses");
+const budgetRoutes = require("./routes/budgets");
+const budgetHistoryRoutes = require("./routes/budgetHistory");
 
 const path = require("path");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/expenses", expenseRoutes);
-app.use("/api/budgets", require("./routes/budgets"));
+app.use("/api/budgets", budgetRoutes);
+app.use("/api/budget-history", budgetHistoryRoutes);
 
 // Serve static assets in production
 if (process.env.NODE_ENV === "production") {

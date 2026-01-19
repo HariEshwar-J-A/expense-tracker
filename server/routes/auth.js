@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
 const { User } = require("../database/models");
+const BudgetHistory = require("../database/models/BudgetHistory");
 
 const SECRET = process.env.JWT_SECRET || "fallback_secret";
 const auth = require("../middleware/auth");
@@ -150,7 +151,7 @@ router.get("/me", auth, async (req, res) => {
  */
 router.put("/profile", auth, async (req, res) => {
   try {
-    const { firstName, lastName, monthlyBudget, budgetPeriod } = req.body;
+    const { firstName, lastName, monthlyBudget, budgetPeriod, budgetReason, budgetEffectiveDate } = req.body;
     const updates = {};
 
     if (firstName !== undefined) updates.firstName = firstName;
@@ -158,7 +159,21 @@ router.put("/profile", auth, async (req, res) => {
     if (monthlyBudget !== undefined) updates.monthlyBudget = parseFloat(monthlyBudget);
     if (budgetPeriod !== undefined) updates.budgetPeriod = budgetPeriod;
 
+    // Check if budget is being changed
+    const budgetChanged = monthlyBudget !== undefined;
+
     const updatedUser = await User.update(req.user.id, updates);
+
+    // Auto-record budget history if budget changed
+    if (budgetChanged) {
+      const effectiveDate = budgetEffectiveDate || new Date();
+      await BudgetHistory.recordChange(
+        req.user.id,
+        monthlyBudget,
+        effectiveDate,
+        budgetReason || null
+      );
+    }
 
     res.json({
       message: "Profile updated successfully",
