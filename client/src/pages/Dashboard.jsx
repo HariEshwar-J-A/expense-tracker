@@ -532,11 +532,17 @@ const Dashboard = () => {
     const [openBudgetDialog, setOpenBudgetDialog] = useState(false);
     const [budgetInput, setBudgetInput] = useState("");
     const [activeSlide, setActiveSlide] = useState(0);
+    const budgetInitialized = useRef(false);
 
-    // Prompt for budget if 0 or null
     useEffect(() => {
-        if (user && (!user.monthlyBudget || user.monthlyBudget === 0)) {
-            // Optional: Auto-open dialog, or just show a button.
+        if (user && typeof user.monthlyBudget === 'number' && !budgetInitialized.current) {
+            setBudgetInput(user.monthlyBudget.toString());
+            budgetInitialized.current = true;
+        }
+    }, [user]);
+
+    useEffect(() => {
+        if (user && user.monthlyBudget === 0) {
             setOpenBudgetDialog(true);
         }
     }, [user]);
@@ -549,7 +555,7 @@ const Dashboard = () => {
         }
     };
 
-    const handlePeriodChange = async (event, newPeriod) => {
+    const handlePeriodChange = async (_event, newPeriod) => {
         if (newPeriod !== null && newPeriod !== period) {
             setPeriod(newPeriod);
             // Persist choice to DB

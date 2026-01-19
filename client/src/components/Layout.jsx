@@ -18,10 +18,32 @@ import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 
 const Layout = ({ children }) => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const { mode, toggleColorMode } = useThemeContext();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const getUserDisplayName = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    } else if (user?.firstName) {
+      return user.firstName;
+    } else if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return 'User';
+  };
+
+  const getUserInitials = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    } else if (user?.firstName) {
+      return user.firstName.substring(0, 2).toUpperCase();
+    } else if (user?.email) {
+      return user.email.substring(0, 2).toUpperCase();
+    }
+    return 'U';
+  };
 
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
@@ -121,12 +143,42 @@ const Layout = ({ children }) => {
               </Button>
             </Box>
 
-            <Box sx={{ display: "flex", order: { xs: 2, md: 3 } }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, order: { xs: 2, md: 3 } }}>
+              <Box
+                sx={{
+                  display: { xs: "none", sm: "flex" },
+                  alignItems: "center",
+                  gap: 1,
+                  px: 1.5,
+                  py: 0.5,
+                  borderRadius: 2,
+                  bgcolor: "action.hover",
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, #6C63FF 0%, #FF6584 100%)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "white",
+                    fontWeight: "bold",
+                    fontSize: "0.875rem",
+                  }}
+                >
+                  {getUserInitials()}
+                </Box>
+                <Typography variant="body2" fontWeight={600}>
+                  {getUserDisplayName()}
+                </Typography>
+              </Box>
               <IconButton
                 onClick={toggleColorMode}
                 color="inherit"
                 aria-label="Toggle color mode"
-                sx={{ mr: 1 }}
               >
                 {mode === "dark" ? <LightModeIcon /> : <DarkModeIcon />}
               </IconButton>
